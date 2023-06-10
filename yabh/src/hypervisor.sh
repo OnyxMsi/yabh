@@ -208,11 +208,13 @@ EOF
     hv_dbg "[$name] Create jail configuration file $jail_config"
     cat > $jail_config << EOF
 {
-    "release": "$release",
     "datasets": [
     ],
-    "priority": 0,
-    "parameters": {
+    "yabh_parameters": {
+        "priority": 0,
+        "release": "$release"
+    },
+    "jail_parameters": {
         "host.hostname": "$name",
         "path": "$jail_root",
         "persist": true,
@@ -258,24 +260,41 @@ hypervisor_jail_check_configuration() {
     hv_dbg "[$jail_name] Configuration file is OK"
 }
 hypervisor_jail_config_get_release() {
+    jq_get $1 .yabh_parameters.release
+}
+hypervisor_jail_config_is_yabh_parameter() {
     local conf_path=$1
-    jq -r ".release" $conf_path
+    local parameter_name=$2
+    # Works only becausse every yabh parameter has a default value
+    test $(jq_get $conf_path ".yabh_parameters | has(\"$parameter_name\")") = true
+}
+hypervisor_jail_config_get_parameter_parent_path() {
+    local conf_path=$1
+    local parameter_name=$2
+    if hypervisor_jail_config_is_yabh_parameter $conf_path $parameter_name ; then
+        echo ".yabh_parameters"
+    else
+        echo ".jail_parameters"
+    fi
 }
 hypervisor_jail_config_set_parameter() {
     local conf_path=$1
     local parameter_name=$2
     local parameter_value=$3
-    jq_edit $conf_path ".parameters[\"$parameter_name\"] = \"$parameter_value\""
+    local param_path=$(hypervisor_jail_config_get_parameter_parent_path $conf_path $parameter_name)
+    jq_edit $conf_path "$param_path[\"$parameter_name\"] = \"$parameter_value\""
 }
 hypervisor_jail_config_get_parameter() {
     local conf_path=$1
     local parameter_name=$2
-    jq -r ".parameters[\"$parameter_name\"]" $conf_path
+    local param_path=$(hypervisor_jail_config_get_parameter_parent_path $conf_path $parameter_name)
+    jq_get $conf_path "$param_path[\"$parameter_name\"]"
 }
 hypervisor_jail_config_has_parameter() {
     local conf_path=$1
     local parameter_name=$2
-    test $(jq ".parameters | has(\"$parameter_name\")" $conf_path) = true
+    local param_path=$(hypervisor_jail_config_get_parameter_parent_path $conf_path $parameter_name)
+    test $(jq_get $conf_path "$param_path | has(\"$parameter_name\")") = true
 }
 hypervisor_jail_config_has_parameter_with_value() {
     local conf_path=$1
@@ -412,7 +431,7 @@ EOF
     hypervisor_append_to_ucl_file $jail_ucl_conf_path mount.fstab $jail_fstab
     hypervisor_append_to_ucl_file $jail_ucl_conf_path vnet.interface "${jail_inet_b}"
     hypervisor_append_to_ucl_file $jail_ucl_conf_path exec.poststop "/sbin/ifconfig $jail_inet_a destroy"
-    for p_name in $(hypervisor_jail_config_list_parameters $jail_config) ; do
+    for p_name in $(hypervisor_jail_config_list_jail_parameters $jail_config) ; do
         p_value=$(hypervisor_jail_config_get_parameter $jail_config $p_name)
         hv_dbg "[$name] Set $p_name = $p_value"
         if [ "$p_value" = "true" ] ; then
@@ -561,7 +580,20 @@ jail_jail_add() {
     inf "Jail $jail_name was created"
 }
 jail_jail_list() {
-    hypervisor_jail_list
+    local fields=${1:-$DEFAULT_JAIL_LIST_FIELDS}
+    local jail_name
+    local jail_conf
+    local fields
+    local line
+    for jail_name in $(hypervisor_jail_list) ; do
+        check_jail_exists_exit $jail_name
+        jail_conf=$(hypervisor_jail_get_config_path $jail_name)
+        line=""
+        for field in $(echo $fields) ; do
+            value=$(hypervisor_jail_config_get_parameter $jail_conf $field)
+            [ "$line" = "" ] && line=$value || line="${line}${LIST_SEPARATOR}${value}"
+        done
+    done
 }
 check_jail_is_stopped_exit_or_stop() {
     local name=$1
@@ -583,16 +615,29 @@ jail_jail_remove() {
     hypervisor_jail_remove $jail_name
     inf "Jail $jail_name was removed"
 }
+jail_jail_list_with_priority() {
+    local jail
+    local jail_config
+    local priority
+    local priority_list=""
+    local flags
+    [ $# -eq 0 ] && jails=$(hypervisor_jail_list) || jails="$*"
+    for jail in $(echo $jails) ; do
+        check_jail_exists_exit $jail
+        check_jail_config_exit $jail
+        jail_config=$(hypervisor_jail_get_config_path $jail)
+        priority=$(hypervisor_jail_config_get_parameter $jail_config priority)
+        echo "$jail $priority"
+    done
+}
+jail_jail_list_sort_by_priority() {
+    jail_jail_list_with_priority $* | sort -g | cut -f 2 -d " "
+}
+jail_jail_list_sort_by_priority_reversed() {
+    jail_jail_list_with_priority $* | sort -rg | cut -f 2 -d " "
+}
 jail_jail_start() {
-    local jails
-    if [ $# -eq 0 ] ; then
-        jails=$(hypervisor_jail_list)
-    else
-        jails="$*"
-    fi
-    for jail_name in $(echo $jails) ; do
-        check_jail_exists_exit $jail_name
-        check_jail_config_exit $jail_name
+    for jail_name in $(jail_jail_list_sort_by_priority $*) ; do
         if jls_is_running $jail_name ; then
             jail_crt "$jail_name is already running"
         else
@@ -604,10 +649,7 @@ jail_jail_start() {
     done
 }
 jail_jail_stop() {
-    crt_not_enough_argument 1 $*
-    for jail_name in $(echo "$*") ; do
-        check_jail_exists_exit $jail_name
-        check_jail_config_exit $jail_name
+    for jail_name in $(jail_jail_list_sort_by_priority_reversed $*) ; do
         if ! jls_is_running $jail_name ; then
             jail_crt "$jail_name is not running"
         else
@@ -618,14 +660,8 @@ jail_jail_stop() {
 }
 jail_jail_restart() {
     crt_not_enough_argument 1 $*
-    for jail_name in $(echo "$*") ; do
-        check_jail_exists_exit $jail_name
-        check_jail_config_exit $jail_name
-        if jls_is_running $jail_name ; then
-            jail_jail_stop $jail_name
-        fi
-        jail_jail_start $jail_name
-    done
+    jail_jail_stop $*
+    jail_jail_start $*
 }
 jail_jail_set() {
     crt_not_enough_argument 2 $*
@@ -677,8 +713,7 @@ jail_dataset_list() {
     local jail_config=$(hypervisor_jail_get_config_path $jail_name)
     check_jail_exists_exit $jail_name
     check_jail_config_exit $jail_name
-    hypervisor_jail_config_list_datasets $
-    hypervisor_release_list
+    hypervisor_jail_config_list_datasets $1
 }
 jail_dataset_remove() {
     local jail_name=$1

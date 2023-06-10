@@ -1,5 +1,8 @@
 {
-    "dataset": "data/yabh",
+    "dataset": {
+        "name": "data/yabh",
+        "mountpoint": "/yabh_set"
+    },
     "main_interface": "vtnet0",
     "bridge_interface": "bridge0"
 }
