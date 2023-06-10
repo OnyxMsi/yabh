@@ -1,0 +1,48 @@
+#!/bin/sh
+
+# PROVIDE: yabh
+# REQUIRE: jail
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name=yabh
+rcvar=yabh_enable
+start_cmd="${name}_start"
+stop_cmd="${name}_stop"
+yabh_exe=/usr/local/bin/yabh
+
+run_yabh() {
+    ${yabh_exe} ${yabh_flags} ${yabh_configuration_path} $*
+}
+
+yabh_start() {
+    debug "Check for configuration at ${yabh_configuration_path}"
+    if [ ! -f "${yabh_configuration_path}" ] ; then
+        err 1 "${yabh_configuration_path} no such file"
+    fi
+    debug "Check for executable at ${yabh_exe}"
+    if [ ! -f "${yabh_exe}" ] ; then
+        err 1 "${yabh_exe} no such file"
+    fi
+    if [ ! -x "${yabh_exe}" ] ; then
+        err 1 "${yabh_exe} is not set as executable"
+    fi
+    debug "Check configuration file ${yabh_configuration_path}"
+    run_yabh check
+    if [ $? -ne 0 ] ; then
+        err 1 "yabh check has failed"
+    fi
+    debug "Start jails"
+    run_yabh jail jail start
+}
+yabh_stop() {
+    debug "Stop jails"
+    run_yabh jail jail stop
+}
+
+load_rc_config $name
+: ${yabh_enable:=no}
+: ${yabh_flags:=}
+: ${yabh_configuration_path:=/usr/local/etc/yabh/configuration.json}
+run_rc_command "$@"
