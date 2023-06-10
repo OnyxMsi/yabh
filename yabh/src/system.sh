@@ -7,20 +7,9 @@ jls_is_running() {
 list_zfs_dataset_children() {
     local dataset=$1
     # Skip first line which is dataset
-    for dname in $(zfs list -H -d 1 -o name $dataset | tail -n +2) ; do
+    for dname in $($ZFS_EXE list -H -d 1 -o name $dataset | tail -n +2) ; do
         basename $dname
     done
-}
-
-check_package_installed() {
-    pkg info -e $1
-}
-check_package_installed_exit() {
-    local name=$1
-    dbg "Check if package $name is installed"
-    if ! check_package_installed $name ; then
-        crt $RETURN_ENVIRONMENT_ERROR "Package $name is not installed"
-    fi
 }
 check_kernel_module_loaded() {
     kldstat -q -n $1
@@ -99,7 +88,7 @@ check_rc_value_exit() {
 }
 zfs_dataset_exists() {
     local name=$1
-    zfs list -H -o name | grep --quiet --extended-regexp "\b$name\b"
+    $ZFS_EXE list -H -o name | grep --quiet --extended-regexp "\b$name\b"
 }
 check_zfs_dataset_exists_exit() {
     local name=$1
@@ -112,7 +101,7 @@ create_zfs_dataset_if_not() {
     local name=$1
     if ! zfs_dataset_exists $name ; then
         dbg "Create ZFS dataset $name"
-        cmd zfs create -p $name
+        cmd $ZFS_EXE create -p $name
     fi
 }
 
@@ -130,7 +119,10 @@ check_system() {
     dbg "Check system configuration"
     check_kernel_module_loaded_exit zfs
     check_service_enabled_exit zfs
-    check_zfs_dataset_exists_exit $(configuration_get_dataset)
+    check_zfs_dataset_exists_exit $(configuration_get_dataset_name)
+    if [ ! -d $(configuration_get_dataset_mountpoint) ] ; then
+        crt $RETURN_ENVIRONMENT_ERROR "$(configuration_get_dataset_mountpoint): no such directory"
+    fi
     check_interface_exists_exit $(configuration_get_main_interface)
     check_interface_exists_exit $(configuration_get_bridge_interface)
     check_sysctl_value_exit net.inet.ip.forwarding 1

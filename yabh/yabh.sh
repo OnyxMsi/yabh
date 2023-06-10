@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+#
 SCRIPTDIR=$(dirname $(realpath $0))
 SCRIPTNAME=$(basename $0)
 
@@ -72,10 +72,10 @@ help() {
     echo "Remove jail"
     echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_START [name ...]"
     echo "Start jail"
-    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_RESTART name [name ...]"
+    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_RESTART [name ...]"
     echo "Restart jail"
     echo "name: the name of the jail (if not set then start every jail)"
-    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_STOP name [name ...]"
+    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_STOP [name ...]"
     echo "Stop jail"
     echo "name: the name of the jail"
     echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_SET name parameter [value]"
@@ -85,8 +85,10 @@ help() {
     echo "value: the value of the parameter to set, if empty it will unset it"
     echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_GET name parameter"
     echo "Get jail parameter"
-    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_LIST"
+    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_LIST [-s separator][fields ...]"
     echo "List jails"
+    echo "-s Fields separator (default is \"$DEFAULT_LIST_SEPARATOR\")"
+    echo "fields ... Fields to show (default is \"$DEFAULT_JAIL_LIST_FIELDS\"). Fields come from jail parameters"
     echo "$c $CMD_VM command"
     echo "About virtual machines"
     echo "$c $CMD_VM $CMD_VM_ISO"
@@ -173,26 +175,27 @@ vm() {
 
 # Arguments default values
 FORCE=0
-while getopts vhf ARG ; do
+LIST_SEPARATOR=$DEFAULT_LIST_SEPARATOR
+while getopts "vhfs:" ARG ; do
     shift
     case "$ARG" in
         h) help ; exit 0 ;;
         f) FORCE=1 ;;
         v) VERBOSITY_LEVEL=$(($VERBOSITY_LEVEL + 1)) ;;
+        s) LIST_SEPARATOR=$OPTARG ;;
         --) break ;;
         ?) crt_invalid_command_line argument $ARG ;;
     esac
 done
 # Checks before process start
-for dep in $(echo "jq zfs") ; do
-    which $dep > /dev/null
-    if [ $? -ne 0 ] ; then
+if [ $(id -u) -ne 0 ] ; then
+    crt $RETURN_NOT_ROOT_ERROR "Must be root"
+fi
+for dep in $(echo "$JQ_EXE $ZFS_EXE") ; do
+    if [ ! -f $dep ] ; then
         crt $RETURN_ENVIRONMENT_ERROR "$dep is required but not found"
     fi
 done
-if [ $(whoami) != "root" ] ; then
-    crt $RETURN_NOT_ROOT_ERROR "Must be root"
-fi
 crt_not_enough_argument 2 $*
 configuration_load $1 ; shift
 CMD=$1 ; shift

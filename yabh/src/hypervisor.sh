@@ -1,5 +1,5 @@
 hypervisor_get_dataset_root() {
-    configuration_get_dataset
+    configuration_get_dataset_name
 }
 hypervisor_get_dataset_iso() {
     echo "$(hypervisor_get_dataset_root)/isos"
@@ -38,14 +38,14 @@ init_hypervisor() {
     # Dataset
     create_zfs_dataset_if_not $(hypervisor_get_dataset_root)
     create_zfs_dataset_if_not $(hypervisor_get_dataset_iso)
-    cmd zfs set exec=off $(hypervisor_get_dataset_iso)
+    cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_iso)
     create_zfs_dataset_if_not $(hypervisor_get_dataset_release)
-    cmd zfs set exec=off $(hypervisor_get_dataset_release)
+    cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_release)
     create_zfs_dataset_if_not $(hypervisor_get_dataset_snapshot)
-    cmd zfs set exec=off $(hypervisor_get_dataset_snapshot)
+    cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_snapshot)
     create_zfs_dataset_if_not $(hypervisor_get_dataset_jail)
     create_zfs_dataset_if_not $(hypervisor_get_dataset_vm)
-    cmd zfs set exec=off $(hypervisor_get_dataset_vm)
+    cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_vm)
     # Jail
     # Virtual machine
     dbg "Hypervisor configuration initialized"
@@ -70,7 +70,7 @@ hypervisor_release_get_dataset() {
     echo "$(hypervisor_get_dataset_release)/$1"
 }
 hypervisor_release_get_root_path() {
-    echo "/$(hypervisor_release_get_dataset $1)/root"
+    echo $(configuration_get_dataset_path "$(hypervisor_release_get_dataset)/root")
 }
 hypervisor_release_exists() {
     zfs_dataset_exists $(hypervisor_release_get_dataset $1)
@@ -85,10 +85,10 @@ hypervisor_release_fetch() {
     release_url="$HYPERVISOR_RELEASE_BASE_URL/$name"
     release_dataset=$(hypervisor_release_get_dataset $name)
     hv_dbg "[$name] Create zfs dataset $release_dataset"
-    cmd zfs create -p $release_dataset
-    cmd zfs set exec=off $release_dataset
+    cmd $ZFS_EXE create -p $release_dataset
+    cmd $ZFS_EXE set exec=off $release_dataset
     release_root=$(hypervisor_release_get_root_path $name)
-    release_fetch="/$release_dataset/fetch"
+    release_fetch=$(configuration_get_dataset_path "$release_dataset/fetch")
     hv_dbg "[$name] Create release root $release_root"
     mkdir -p $release_root
     hv_dbg "[$name] Create release fetch $release_fetch"
@@ -104,7 +104,7 @@ hypervisor_release_fetch() {
     hv_dbg "[$name] Remove release $name fetch directory $release_fetch"
     rm -rf $release_fetch
     hv_dbg "[$name] Make zfs dataset readonly"
-    cmd zfs set readonly=on $release_dataset
+    cmd $ZFS_EXE set readonly=on $release_dataset
     hv_inf "[$name] Release $name fetched"
 }
 hypervisor_release_remove() {
@@ -114,34 +114,37 @@ hypervisor_release_remove() {
         hv_err "[$name] no such release"
     fi
     hv_dbg "[$name] Remove release $release_dataset"
-    cmd zfs destroy -Rf $release_dataset
+    cmd $ZFS_EXE destroy -Rf $release_dataset
     hv_inf "[$name] Release was removed"
 }
 hypervisor_release_list() {
     list_zfs_dataset_children $(hypervisor_get_dataset_release)
 }
 # Jail
-hypervisor_jail_get_dataset() {
+hypervisor_jail_get_dataset_name() {
     echo "$(hypervisor_get_dataset_jail)/$1"
 }
+hypervisor_jail_get_dataset_mountpoint() {
+    configuration_get_dataset_path $(hypervisor_jail_get_dataset_name)
+}
 hypervisor_jail_get_root_path() {
-    echo "/$(hypervisor_jail_get_dataset $1)/root"
+    echo "$(hypervisor_jail_get_dataset_mountpoint $1)/root"
 }
 hypervisor_jail_get_config_path() {
-    echo "/$(hypervisor_jail_get_dataset $1)/config.json"
+    echo "$(hypervisor_jail_get_dataset_mountpoint $1)/config.json"
 }
 hypervisor_jail_get_ucl_config_path() {
-    echo "/$(hypervisor_jail_get_dataset $1)/jail.conf"
+    echo "$(hypervisor_jail_get_dataset_mountpoint $1)/jail.conf"
 }
 hypervisor_jail_get_fstab_path() {
-    echo "/$(hypervisor_jail_get_dataset $1)/fstab"
+    echo "$(hypervisor_jail_get_dataset_mountpoint $1)/fstab"
 }
 hypervisor_jail_get_vnet_if_name() {
     local name=$1
     echo "epair_$name"
 }
 hypervisor_jail_exists() {
-    zfs_dataset_exists $(hypervisor_jail_get_dataset $1)
+    zfs_dataset_exists $(hypervisor_jail_get_dataset_name $1)
 }
 hypervisor_jail_list() {
     list_zfs_dataset_children $(hypervisor_get_dataset_jail)
@@ -158,10 +161,10 @@ hypervisor_jail_create() {
         hv_err "[$name] Can't create jail: release $release does not exists"
         return 1
     fi
-    local jail_dataset=$(hypervisor_jail_get_dataset $name)
+    local jail_dataset=$(hypervisor_jail_get_dataset_name $name)
     local release_root=$(hypervisor_release_get_root_path $release)
     hv_dbg "[$name] Create jail dataset $jail_dataset"
-    cmd zfs create -p $jail_dataset
+    cmd $ZFS_EXE create -p $jail_dataset
     jail_root=$(hypervisor_jail_get_root_path $name)
     hv_dbg "[$name] Create jail skeleton at $jail_root"
     mkdir -p $jail_root
@@ -284,11 +287,11 @@ hypervisor_jail_config_has_parameter_with_value() {
 hypervisor_jail_config_remove_parameter() {
     local conf_path=$1
     local parameter_name=$2
-    jq_edit $conf_path "del(.parameters[\"$parameter_name\"])"
+    local param_path=$(hypervisor_jail_config_get_parameter_parent_path $conf_path $parameter_name)
+    jq_edit $conf_path "del($param_path[\"$parameter_name\"])"
 }
-hypervisor_jail_config_list_parameters() {
-    local conf_path=$1
-    jq -r ".parameters | keys | .[]" $conf_path
+hypervisor_jail_config_list_jail_parameters() {
+    jq_get $1 ".jail_parameters | keys | .[]"
 }
 hypervisor_jail_config_add_dataset() {
     local conf_path=$1
@@ -301,11 +304,11 @@ hypervisor_jail_config_add_dataset() {
 hypervisor_jail_config_has_dataset() {
     local conf_path=$1
     local dataset=$2
-    test $(jq ".datasets | index(\"$dataset\")" $conf_path) != "null"
+    test $(jq_get $conf_path ".datasets | index(\"$dataset\")") != "null"
 }
 hypervisor_jail_config_has_datasets() {
     local conf_path=$1
-    test $(jq ".datasets | length" $conf_path) -gt 0
+    test ! $(jq_is_empty $1 ".datasets")
 }
 hypervisor_jail_config_remove_dataset() {
     local conf_path=$1
@@ -316,7 +319,7 @@ hypervisor_jail_config_remove_dataset() {
 }
 hypervisor_jail_config_list_datasets() {
     local conf_path=$1
-    jq -r ".datasets | .[]" $conf_path
+    jq_get $1 ".datasets | .[]"
 }
 hypervisor_append_to_ucl_file() {
     local path=$1
@@ -426,8 +429,8 @@ EOF
     hv_dbg "[$name] Mount datasets"
     for dpath in $(hypervisor_jail_config_list_datasets $jail_config) ; do
         hv_dbg "[$name] Attach dataset $dpath to jail"
-        cmd zfs set jailed=on $dpath
-        cmd zfs jail $name $dpath
+        cmd $ZFS_EXE set jailed=on $dpath
+        cmd $ZFS_EXE jail $name $dpath
     done
     hv_inf "[$name] Jail is running"
     return 0
@@ -457,7 +460,7 @@ hypervisor_jail_stop() {
 hypervisor_jail_remove() {
     local name=$1
     local jail_config=$(hypervisor_jail_get_config_path $name)
-    local jail_dataset=$(hypervisor_jail_get_dataset $name)
+    local jail_dataset=$(hypervisor_jail_get_dataset_name $name)
     hv_dbg "[$name] Remove jail"
     if [ ! -f $jail_config ] ; then
         hv_err "[$name] $jail_config: no such configuration file"
@@ -468,7 +471,7 @@ hypervisor_jail_remove() {
         return 1
     fi
     hv_dbg "[$name] Destroy dataset $jail_dataset"
-    cmd zfs destroy -R $jail_dataset
+    cmd $ZFS_EXE destroy -R $jail_dataset
     hv_inf "[$name] Jail was removed"
     return 0
 }

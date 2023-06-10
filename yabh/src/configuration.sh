@@ -1,36 +1,26 @@
-_jq() {
-    data=$1
-    req=$2
-    args=$3
-    echo "$data" | jq $args "$req"
-}
-
-jqr() {
-    _jq "$1" "$2" -r
-}
-
-jqc() {
-    _jq $1 $2 -c
-}
 jq_edit() {
     path=$1
     req=$2
     path_tmp="$path.tmp"
-    jq "$req" $path > $path_tmp
+    $JQ_EXE "$req" $path > $path_tmp
     mv $path_tmp $path
 }
 
-
-has_key() {
-    conf=$1
-    key=$2
-    test "$(jqr "$conf" "has(\"$key\")")" = "true"
+jq_has_key() {
+    local file_path=$1
+    local parent_path=$2
+    local key=$3
+    test $(jq_get $file_path "$parent_path | has(\"$key\")") = true
 }
-
-is_empty() {
-    conf=$1
-    key=$2
-    test $(jqr "$conf" ".$key | length") -eq 0
+jq_is_empty() {
+    local file_path=$1
+    local parent_path=$2
+    test $(jq_get $file_path "$parent_path | length") -eq 0
+}
+jq_get() {
+    local file_path=$1
+    local json_path="$2"
+    $JQ_EXE -r "$json_path" $file_path
 }
 
 # Use a global variable as configuration
@@ -43,44 +33,48 @@ configuration_load() {
         crt $RETURN_CONFIGURATION_ERROR "$path: no such file"
     fi
     # Stupid way to check if this a valid JSON file
-    cat $path | jq > /dev/null 2>&1
+    cat $path | $JQ_EXE > /dev/null 2>&1
     if [ $? -ne 0 ] ; then
         crt $RETURN_CONFIGURATION_ERROR "$path is not a valid JSON file"
     fi
     CONFIGURATION_PATH=$path
 }
 
-check_configuration_has_key_exit() {
-    conf="$1"
-    key=$2
-    dbg "Check that configuration key $key exists"
-    if ! has_key "$conf" "$key" ; then
-        crt $RETURN_CONFIGURATION_ERROR "Configuration $CONFIGURATION_PATH: key $key does not exists"
-    fi
-}
 check_configuration_has_key_non_empty_exit() {
-    conf="$1"
-    key=$2
-    check_configuration_has_key_exit "$conf" "$key"
-    if [ "$(jqr "$conf" ".$key")" == "" ] ; then
-        crt $RETURN_CONFIGURATION_ERROR "Configuration $CONFIGURATION_PATH: key $key should not be empty"
+    local conf="$1"
+    local parent=$2
+    local key=$3
+    local path
+    [ "$parent" = "." ] && path=".$key" || path="$parent.$key"
+    if ! jq_has_key $conf "$parent" "$key" ; then
+        crt $RETURN_CONFIGURATION_ERROR "Configuration $CONFIGURATION_PATH: key $path does not exists"
+    fi
+    if jq_is_empty $conf "$path" ; then
+        crt $RETURN_CONFIGURATION_ERROR "Configuration $CONFIGURATION_PATH: key $path should not be empty"
     fi
 }
 
 check_configuration() {
     dbg "Check configuration file $CONFIGURATION_PATH"
-    conf=$(cat $CONFIGURATION_PATH)
-    check_configuration_has_key_non_empty_exit "$conf" "main_interface"
-    check_configuration_has_key_non_empty_exit "$conf" "bridge_interface"
-    check_configuration_has_key_non_empty_exit "$conf" "dataset"
+    check_configuration_has_key_non_empty_exit $CONFIGURATION_PATH . main_interface
+    check_configuration_has_key_non_empty_exit $CONFIGURATION_PATH . bridge_interface
+    check_configuration_has_key_non_empty_exit $CONFIGURATION_PATH . dataset
+    check_configuration_has_key_non_empty_exit $CONFIGURATION_PATH .dataset name
+    check_configuration_has_key_non_empty_exit $CONFIGURATION_PATH .dataset mountpoint
 }
 
 configuration_get_main_interface() {
-    jqr "$(cat $CONFIGURATION_PATH)" ".main_interface"
+    jq_get $CONFIGURATION_PATH .main_interface
 }
 configuration_get_bridge_interface() {
-    jqr "$(cat $CONFIGURATION_PATH)" ".bridge_interface"
+    jq_get $CONFIGURATION_PATH .bridge_interface
 }
-configuration_get_dataset() {
-    jqr "$(cat $CONFIGURATION_PATH)" ".dataset"
+configuration_get_dataset_name() {
+    jq_get $CONFIGURATION_PATH .dataset.name
+}
+configuration_get_dataset_mountpoint() {
+    jq_get $CONFIGURATION_PATH .dataset.mountpoint
+}
+configuration_get_dataset_path() {
+    echo "$(configuration_get_dataset_mountpoint)/$1"
 }

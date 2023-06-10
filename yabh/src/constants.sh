@@ -11,3 +11,6 @@ RETURN_JAIL_ERROR=5
 
 HYPERVISOR_RELEASE_BASE_URL="https://download.freebsd.org/ftp/releases/amd64"
 JAIL_DEFAULT_DEVFSRULESET=5
+
+JQ_EXE=${YABH_JQ_EXE:-/usr/local/bin/jq}
+ZFS_EXE=${YABH_ZFS_EXE:-/sbin/zfs}
