@@ -1,31 +1,49 @@
-hypervisor_get_dataset_root() {
+hypervisor_get_dataset_root_name() {
     configuration_get_dataset_name
 }
-hypervisor_get_dataset_iso() {
-    echo "$(hypervisor_get_dataset_root)/isos"
+hypervisor_get_dataset_iso_name() {
+    echo "$(hypervisor_get_dataset_root_name)/isos"
 }
-hypervisor_get_dataset_release() {
-    echo "$(hypervisor_get_dataset_root)/releases"
+hypervisor_get_dataset_release_name() {
+    echo "$(hypervisor_get_dataset_root_name)/releases"
 }
-hypervisor_get_dataset_snapshot() {
-    echo "$(hypervisor_get_dataset_root)/snapshots"
+hypervisor_get_dataset_snapshot_name() {
+    echo "$(hypervisor_get_dataset_root_name)/snapshots"
 }
-hypervisor_get_dataset_jail() {
-    echo "$(hypervisor_get_dataset_root)/jails"
+hypervisor_get_dataset_jail_name() {
+    echo "$(hypervisor_get_dataset_root_name)/jails"
 }
-hypervisor_get_dataset_vm() {
-    echo "$(hypervisor_get_dataset_root)/vms"
+hypervisor_get_dataset_vm_name() {
+    echo "$(hypervisor_get_dataset_root_name)/vms"
+}
+hypervisor_get_dataset_root_mountpoint() {
+    configuration_get_dataset_mountpoint
+}
+hypervisor_get_dataset_iso_mountpoint() {
+    echo "$(hypervisor_get_dataset_root_mountpoint)/isos"
+}
+hypervisor_get_dataset_release_mountpoint() {
+    echo "$(hypervisor_get_dataset_root_mountpoint)/releases"
+}
+hypervisor_get_dataset_snapshot_mountpoint() {
+    echo "$(hypervisor_get_dataset_root_mountpoint)/snapshots"
+}
+hypervisor_get_dataset_jail_mountpoint() {
+    echo "$(hypervisor_get_dataset_root_mountpoint)/jails"
+}
+hypervisor_get_dataset_vm_mountpoint() {
+    echo "$(hypervisor_get_dataset_root_mountpoint)/vms"
 }
 
 check_hypervisor() {
     dbg "Check hypervisor configuration"
     # Dataset
-    check_zfs_dataset_exists_exit $(hypervisor_get_dataset_root)
-    check_zfs_dataset_exists_exit $(hypervisor_get_dataset_iso)
-    check_zfs_dataset_exists_exit $(hypervisor_get_dataset_release)
-    check_zfs_dataset_exists_exit $(hypervisor_get_dataset_snapshot)
-    check_zfs_dataset_exists_exit $(hypervisor_get_dataset_jail)
-    check_zfs_dataset_exists_exit $(hypervisor_get_dataset_vm)
+    check_zfs_dataset_exists_exit $(hypervisor_get_dataset_root_name)
+    check_zfs_dataset_exists_exit $(hypervisor_get_dataset_iso_name)
+    check_zfs_dataset_exists_exit $(hypervisor_get_dataset_release_name)
+    check_zfs_dataset_exists_exit $(hypervisor_get_dataset_snapshot_name)
+    check_zfs_dataset_exists_exit $(hypervisor_get_dataset_jail_name)
+    check_zfs_dataset_exists_exit $(hypervisor_get_dataset_vm_name)
     # Jail
     # Virtual machine
     check_kernel_module_loaded_exit vmm
@@ -36,16 +54,16 @@ check_hypervisor() {
 init_hypervisor() {
     dbg "Initialize hypervisor configuration"
     # Dataset
-    create_zfs_dataset_if_not $(hypervisor_get_dataset_root)
-    create_zfs_dataset_if_not $(hypervisor_get_dataset_iso)
-    cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_iso)
-    create_zfs_dataset_if_not $(hypervisor_get_dataset_release)
-    cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_release)
-    create_zfs_dataset_if_not $(hypervisor_get_dataset_snapshot)
-    cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_snapshot)
-    create_zfs_dataset_if_not $(hypervisor_get_dataset_jail)
-    create_zfs_dataset_if_not $(hypervisor_get_dataset_vm)
-    cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_vm)
+    create_zfs_dataset_if_not $(hypervisor_get_dataset_root_name)
+    create_zfs_dataset_if_not $(hypervisor_get_dataset_iso_name)
+    cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_iso_name)
+    create_zfs_dataset_if_not $(hypervisor_get_dataset_release_name)
+    cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_release_name)
+    create_zfs_dataset_if_not $(hypervisor_get_dataset_snapshot_name)
+    cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_snapshot_name)
+    create_zfs_dataset_if_not $(hypervisor_get_dataset_jail_name)
+    create_zfs_dataset_if_not $(hypervisor_get_dataset_vm_name)
+    cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_vm_name)
     # Jail
     # Virtual machine
     dbg "Hypervisor configuration initialized"
@@ -66,19 +84,22 @@ hv_wrn() {
 #
 # Jail
 #
-hypervisor_release_get_dataset() {
-    echo "$(hypervisor_get_dataset_release)/$1"
+hypervisor_release_get_dataset_name() {
+    echo "$(hypervisor_get_dataset_release_name)/$1"
+}
+hypervisor_release_get_dataset_mountpoint() {
+    echo "$(hypervisor_get_dataset_release_mountpoint)/$1"
 }
 hypervisor_release_get_root_path() {
-    echo $(configuration_get_dataset_path "$(hypervisor_release_get_dataset $1)/root")
+    echo "$(hypervisor_release_get_dataset_mountpoint $1)/root"
 }
 hypervisor_release_exists() {
-    zfs_dataset_exists $(hypervisor_release_get_dataset $1)
+    zfs_dataset_exists $(hypervisor_release_get_dataset_name $1)
 }
 hypervisor_release_fetch() {
     local name=$1
     local release_url="$HYPERVISOR_RELEASE_BASE_URL/$name"
-    local release_dataset=$(hypervisor_release_get_dataset $name)
+    local release_dataset=$(hypervisor_release_get_dataset_name $name)
     local release_root
     local release_fetch
     hv_dbg "[$name] Fetch release"
@@ -90,7 +111,7 @@ hypervisor_release_fetch() {
     cmd $ZFS_EXE create -p $release_dataset
     cmd $ZFS_EXE set exec=off $release_dataset
     release_root=$(hypervisor_release_get_root_path $name)
-    release_fetch=$(configuration_get_dataset_path "$release_dataset/fetch")
+    release_fetch="$(hypervisor_release_get_dataset_mountpoint $name)/fetch"
     hv_dbg "[$name] Create release root $release_root"
     mkdir -p $release_root
     hv_dbg "[$name] Create release fetch $release_fetch"
@@ -111,7 +132,7 @@ hypervisor_release_fetch() {
 }
 hypervisor_release_remove() {
     local name=$1
-    local release_dataset=$(hypervisor_release_get_dataset $name)
+    local release_dataset=$(hypervisor_release_get_dataset_name $name)
     if ! hypervisor_release_exists $name ; then
         hv_err "[$name] no such release"
     fi
@@ -120,14 +141,14 @@ hypervisor_release_remove() {
     hv_inf "[$name] Release was removed"
 }
 hypervisor_release_list() {
-    list_zfs_dataset_children $(hypervisor_get_dataset_release)
+    list_zfs_dataset_children $(hypervisor_get_dataset_release_name)
 }
 # Jail
 hypervisor_jail_get_dataset_name() {
-    echo "$(hypervisor_get_dataset_jail)/$1"
+    echo "$(hypervisor_get_dataset_jail_name)/$1"
 }
 hypervisor_jail_get_dataset_mountpoint() {
-    configuration_get_dataset_path $(hypervisor_jail_get_dataset_name)
+    echo "$(hypervisor_get_dataset_jail_mountpoint)/$1"
 }
 hypervisor_jail_get_root_path() {
     echo "$(hypervisor_jail_get_dataset_mountpoint $1)/root"
@@ -149,7 +170,7 @@ hypervisor_jail_exists() {
     zfs_dataset_exists $(hypervisor_jail_get_dataset_name $1)
 }
 hypervisor_jail_list() {
-    list_zfs_dataset_children $(hypervisor_get_dataset_jail)
+    list_zfs_dataset_children $(hypervisor_get_dataset_jail_name)
 }
 hypervisor_jail_create() {
     local name=$1
@@ -172,7 +193,15 @@ hypervisor_jail_create() {
     mkdir -p $jail_root
     mkdir -p "$jail_root/dev"
     mkdir -p "$jail_root/tmp"
-    mkdir -p "$jail_root/usr/local"
+    mkdir -p "$jail_root/usr/local/bin"
+    mkdir -p "$jail_root/usr/local/etc"
+    mkdir -p "$jail_root/usr/local/include"
+    mkdir -p "$jail_root/usr/local/lib"
+    mkdir -p "$jail_root/usr/local/libdata"
+    mkdir -p "$jail_root/usr/local/libexec"
+    mkdir -p "$jail_root/usr/local/man"
+    mkdir -p "$jail_root/usr/local/sbin"
+    mkdir -p "$jail_root/usr/local/share"
     cp -aR "$release_root/etc" "$jail_root/etc"
     cp -aR "$release_root/var" "$jail_root/var"
     # These are mountpoints
@@ -241,9 +270,16 @@ hypervisor_jail_check_configuration() {
         hv_err "[$jail_name] $conf_path: no such configuration file"
         return 1
     fi
-    conf=$(cat $conf_path)
-    if ! has_key "$conf" "release" ; then
-        hv_err "[$jail_name] No release in configuration"
+    if ! jq_has_key "$conf_path" . yabh_parameters ; then
+        hv_err "[$jail_name] No yabh_parameters in configuration"
+        return 1
+    fi
+    if ! jq_has_key "$conf_path" .yabh_parameters release ; then
+        hv_err "[$jail_name] No .yabh_parameters.release in configuration"
+        return 1
+    fi
+    if ! jq_has_key "$conf_path" .yabh_parameters priority ; then
+        hv_err "[$jail_name] No .yabh_parameters.priority in configuration"
         return 1
     fi
     release=$(hypervisor_jail_config_get_release $conf_path)
@@ -251,11 +287,11 @@ hypervisor_jail_check_configuration() {
         hv_err "[$jail_name] Unknown release $release"
         return 1
     fi
-    if ! has_key "$conf" "parameters" ; then
+    if ! jq_has_key "$conf_path" . jail_parameters ; then
         hv_err "[$jail_name] No parameters in configuration"
         return 1
     fi
-    if ! has_key "$conf" "datasets" ; then
+    if ! jq_has_key "$conf_path" . datasets ; then
         hv_err "[$jail_name] No datasets in configuration"
         return 1
     fi
@@ -625,11 +661,9 @@ jail_jail_list_with_priority() {
     local flags
     [ $# -eq 0 ] && jails=$(hypervisor_jail_list) || jails="$*"
     for jail in $(echo $jails) ; do
-        check_jail_exists_exit $jail
-        check_jail_config_exit $jail
         jail_config=$(hypervisor_jail_get_config_path $jail)
         priority=$(hypervisor_jail_config_get_parameter $jail_config priority)
-        echo "$jail $priority"
+        echo "$priority $jail"
     done
 }
 jail_jail_list_sort_by_priority() {
