@@ -673,6 +673,9 @@ jail_jail_list_sort_by_priority_reversed() {
 }
 jail_jail_start() {
     for jail_name in $(jail_jail_list_sort_by_priority $*) ; do
+        check_jail_exists_exit $jail_name
+        check_jail_config_exit $jail_name
+        check_jail_is_stopped_exit_or_stop $jail_name
         if jls_is_running $jail_name ; then
             jail_crt "$jail_name is already running"
         else
@@ -685,6 +688,8 @@ jail_jail_start() {
 }
 jail_jail_stop() {
     for jail_name in $(jail_jail_list_sort_by_priority_reversed $*) ; do
+        check_jail_exists_exit $jail_name
+        check_jail_config_exit $jail_name
         if ! jls_is_running $jail_name ; then
             jail_crt "$jail_name is not running"
         else
