@@ -364,8 +364,7 @@ hypervisor_jail_config_has_dataset() {
     test $(jq_get $conf_path ".datasets | index(\"$dataset\")") != "null"
 }
 hypervisor_jail_config_has_datasets() {
-    local conf_path=$1
-    test ! $(jq_is_empty $1 ".datasets")
+    jq_is_empty $1 ".datasets" && return 1 || return 0
 }
 hypervisor_jail_config_remove_dataset() {
     local conf_path=$1
@@ -631,6 +630,7 @@ jail_jail_list() {
             value=$(hypervisor_jail_config_get_parameter $jail_conf $field)
             [ "$line" = "" ] && line=$value || line="${line}${LIST_SEPARATOR}${value}"
         done
+        echo $line
     done
 }
 check_jail_is_stopped_exit_or_stop() {
