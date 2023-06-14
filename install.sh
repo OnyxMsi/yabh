@@ -9,7 +9,7 @@ INSTALL_RC_D_PATH=${YABH_INSTALL_RC_D_PATH:-/usr/local/etc/rc.d/yabh}
 INSTALL_CONFIGURATION_PATH=${YABH_INSTALL_CONFIGURATION_PATH:-/usr/local/etc/yabh/configuration.json}
 
 rm_if_exists() {
-    [ -e $1 ] && rm -rf $1
+    [ -e $1 ] && rm -rf $1 || /usr/bin/true
 }
 mkdir_if_needed() {
     [ ! -e $1 ] && mkdir -p $1 || /usr/bin/true
