@@ -39,6 +39,7 @@ help() {
     echo "$SCRIPTNAME [-hfv] configuration command ..."
     echo "-h Display this message"
     echo "-f Force"
+    echo "-n Do not run check before command (except for check command ...)"
     echo "-v More logging, the more v the more verbose"
     echo "configuration Path to configuration"
     c="$SCRIPTNAME configuration"
@@ -123,6 +124,13 @@ check() {
 init() {
     init_hypervisor
 }
+check_if() {
+    if [ $NO_CHECK -eq 0 ] ; then
+        check $*
+    else
+        wrn "No check option is set"
+    fi
+}
 
 # jail is already defined
 _jail() {
@@ -175,12 +183,14 @@ vm() {
 
 # Arguments default values
 FORCE=0
+NO_CHECK=0
 LIST_SEPARATOR=$DEFAULT_LIST_SEPARATOR
-while getopts "vhfs:" ARG ; do
+while getopts "vhfs:n" ARG ; do
     shift
     case "$ARG" in
         h) help ; exit 0 ;;
         f) FORCE=1 ;;
+        n) NO_CHECK=1 ;;
         v) VERBOSITY_LEVEL=$(($VERBOSITY_LEVEL + 1)) ;;
         s) LIST_SEPARATOR=$OPTARG ;;
         --) break ;;
@@ -202,8 +212,8 @@ CMD=$1 ; shift
 case $CMD in
     $CMD_CHECK) check ;;
     $CMD_INIT) init ;;
-    $CMD_JAIL) check ; _jail $* ;;
-    $CMD_VM) check ; vm $* ;;
+    $CMD_JAIL) check_if ; _jail $* ;;
+    $CMD_VM) check_if ; vm $* ;;
     *) crt_invalid_command_line command $CMD ;;
 esac
 dbg "Success"
