@@ -109,7 +109,6 @@ hypervisor_release_fetch() {
     fi
     hv_dbg "[$name] Create zfs dataset $release_dataset"
     cmd $ZFS_EXE create -p $release_dataset
-    cmd $ZFS_EXE set exec=off $release_dataset
     release_root=$(hypervisor_release_get_root_path $name)
     release_fetch="$(hypervisor_release_get_dataset_mountpoint $name)/fetch"
     hv_dbg "[$name] Create release root $release_root"
