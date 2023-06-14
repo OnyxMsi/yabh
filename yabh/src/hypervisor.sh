@@ -70,20 +70,22 @@ hypervisor_release_get_dataset() {
     echo "$(hypervisor_get_dataset_release)/$1"
 }
 hypervisor_release_get_root_path() {
-    echo $(configuration_get_dataset_path "$(hypervisor_release_get_dataset)/root")
+    echo $(configuration_get_dataset_path "$(hypervisor_release_get_dataset $1)/root")
 }
 hypervisor_release_exists() {
     zfs_dataset_exists $(hypervisor_release_get_dataset $1)
 }
 hypervisor_release_fetch() {
     local name=$1
+    local release_url="$HYPERVISOR_RELEASE_BASE_URL/$name"
+    local release_dataset=$(hypervisor_release_get_dataset $name)
+    local release_root
+    local release_fetch
     hv_dbg "[$name] Fetch release"
     if hypervisor_release_exists $name ; then
         hv_err "[$name] Release already exists"
         return 1
     fi
-    release_url="$HYPERVISOR_RELEASE_BASE_URL/$name"
-    release_dataset=$(hypervisor_release_get_dataset $name)
     hv_dbg "[$name] Create zfs dataset $release_dataset"
     cmd $ZFS_EXE create -p $release_dataset
     cmd $ZFS_EXE set exec=off $release_dataset
