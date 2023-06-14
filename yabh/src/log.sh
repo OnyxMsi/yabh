@@ -4,6 +4,7 @@ log() {
     OUT=$3
     shift 3
     [ $VERBOSITY_LEVEL -ge $LVL ] && echo "$PROGNAME [$HDR] $*" > $OUT
+    return 0
 }
 
 
