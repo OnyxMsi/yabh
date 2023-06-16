@@ -193,9 +193,9 @@ while getopts "vhfs:nc:" ARG ; do
         h) help ; exit 0 ;;
         f) FORCE=1 ;;
         n) NO_CHECK=1 ;;
-        c) CONFIGURATION_PATH=$OPTARG ;;
+        c) CONFIGURATION_PATH=$OPTARG ; shift ;;
         v) VERBOSITY_LEVEL=$(($VERBOSITY_LEVEL + 1)) ;;
-        s) LIST_SEPARATOR=$OPTARG ;;
+        s) LIST_SEPARATOR=$OPTARG ; shift ;;
         --) break ;;
         ?) crt_invalid_command_line argument $ARG ;;
     esac
