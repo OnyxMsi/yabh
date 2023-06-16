@@ -36,11 +36,12 @@ CMD_VM_ISO_REMOVE=remove
 CMD_VM_ISO_LIST=list
 
 help() {
-    echo "$SCRIPTNAME [-hfv] configuration command ..."
+    echo "$SCRIPTNAME [-hfv][-c configuration] command ..."
     echo "-h Display this message"
     echo "-f Force"
     echo "-n Do not run check before command (except for check command ...)"
     echo "-v More logging, the more v the more verbose"
+    echo "-c Alternative configuration path (default is $DEFAULT_CONFIGURATION_PATH)"
     echo "configuration Path to configuration"
     c="$SCRIPTNAME configuration"
     echo "$c $CMD_CHECK"
@@ -185,12 +186,14 @@ vm() {
 FORCE=0
 NO_CHECK=0
 LIST_SEPARATOR=$DEFAULT_LIST_SEPARATOR
-while getopts "vhfs:n" ARG ; do
+CONFIGURATION_PATH=$DEFAULT_CONFIGURATION_PATH
+while getopts "vhfs:nc:" ARG ; do
     shift
     case "$ARG" in
         h) help ; exit 0 ;;
         f) FORCE=1 ;;
         n) NO_CHECK=1 ;;
+        c) CONFIGURATION_PATH=$OPTARG ;;
         v) VERBOSITY_LEVEL=$(($VERBOSITY_LEVEL + 1)) ;;
         s) LIST_SEPARATOR=$OPTARG ;;
         --) break ;;
@@ -206,8 +209,8 @@ for dep in $(echo "$JQ_EXE $ZFS_EXE") ; do
         crt $RETURN_ENVIRONMENT_ERROR "$dep is required but not found"
     fi
 done
-crt_not_enough_argument 2 $*
-configuration_load $1 ; shift
+crt_not_enough_argument 1 $*
+configuration_load $CONFIGURATION_PATH
 CMD=$1 ; shift
 case $CMD in
     $CMD_CHECK) check ;;
