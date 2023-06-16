@@ -14,6 +14,7 @@ JAIL_DEFAULT_DEVFSRULESET=5
 
 DEFAULT_LIST_SEPARATOR=","
 DEFAULT_JAIL_LIST_FIELDS="host.hostname"
+DEFAULT_CONFIGURATION_PATH="/usr/local/etc/$PROGNAME/configuration.json"
 
 JQ_EXE=${YABH_JQ_EXE:-/usr/local/bin/jq}
 ZFS_EXE=${YABH_ZFS_EXE:-/sbin/zfs}
