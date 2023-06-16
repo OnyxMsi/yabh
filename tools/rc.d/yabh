@@ -13,7 +13,7 @@ stop_cmd="${name}_stop"
 yabh_exe=/usr/local/bin/yabh
 
 run_yabh() {
-    ${yabh_exe} ${yabh_flags} ${yabh_configuration_path} $*
+    ${yabh_exe} ${yabh_flags} -c ${yabh_configuration_path} $*
 }
 
 yabh_start() {
