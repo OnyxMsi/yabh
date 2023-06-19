@@ -240,3 +240,25 @@ jail_dataset_remove() {
         crt $RETURN_COMMANDLINE_ERROR "Dataset $dataset is not set for jail $jail_name"
     fi
 }
+jail_jail_export() {
+    local jail_name=$1
+    local src=$2
+    local dest=$3
+    local jail_root=$(hypervisor_jail_get_root_path $jail_name)
+    local dest_dir
+    crt_not_enough_argument 2 $*
+    check_jail_exists_exit $jail_name
+    check_jail_config_exit $jail_name
+    if [ ! -f $src ] ; then
+        jail_crt $RETURN_COMMANDLINE_ERROR "$src: no such file"
+    fi
+    final_src=$(realpath $src)
+    if [ "$dest" = "" ] ; then
+        dbg "Destination path is not set, use source $src"
+        final_dest="$jail_root$src"
+    else
+        final_dest="$jail_root$dest"
+    fi
+    dbg "Copy $final_src into $final_dest"
+    cmd cp $final_src $final_dest
+}

@@ -29,6 +29,7 @@ CMD_JAIL_JAIL_SET=set
 CMD_JAIL_JAIL_START=start
 CMD_JAIL_JAIL_RESTART=restart
 CMD_JAIL_JAIL_STOP=stop
+CMD_JAIL_JAIL_EXPORT=export
 CMD_VM=vm
 CMD_VM_ISO=iso
 CMD_VM_ISO_ADD=add
@@ -91,6 +92,11 @@ help() {
     echo "List jails"
     echo "-s Fields separator (default is \"$DEFAULT_LIST_SEPARATOR\")"
     echo "fields ... Fields to show (default is \"$DEFAULT_JAIL_LIST_FIELDS\"). Fields come from jail parameters"
+    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_EXPORT jail src [dest]"
+    echo "Export file into jail"
+    echo "jail: Jail name"
+    echo "src: File path on host"
+    echo "dest: File path on jail. If not set it will be the same as src."
     echo "$c $CMD_VM command"
     echo "About virtual machines"
     echo "$c $CMD_VM $CMD_VM_ISO"
@@ -176,6 +182,7 @@ jail_jail() {
         $CMD_JAIL_JAIL_START) jail_jail_start $*;;
         $CMD_JAIL_JAIL_RESTART) jail_jail_restart $*;;
         $CMD_JAIL_JAIL_STOP) jail_jail_stop $*;;
+        $CMD_JAIL_JAIL_EXPORT) jail_jail_export $*;;
         *) crt_invalid_command_line "jail command" $CMD ;;
     esac
 }
