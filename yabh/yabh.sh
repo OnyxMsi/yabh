@@ -30,6 +30,11 @@ CMD_JAIL_JAIL_START=start
 CMD_JAIL_JAIL_RESTART=restart
 CMD_JAIL_JAIL_STOP=stop
 CMD_JAIL_JAIL_EXPORT=export
+CMD_JAIL_SNAPSHOT=snapshot
+CMD_JAIL_SNAPSHOT_ADD=add
+CMD_JAIL_SNAPSHOT_REMOVE=remove
+CMD_JAIL_SNAPSHOT_RESTORE=restore
+CMD_JAIL_SNAPSHOT_LIST=list
 CMD_VM=vm
 CMD_VM_ISO=iso
 CMD_VM_ISO_ADD=add
@@ -97,6 +102,19 @@ help() {
     echo "jail: Jail name"
     echo "src: File path on host"
     echo "dest: File path on jail. If not set it will be the same as src."
+    echo "$c $CMD_JAIL $CMD_JAIL_SNAPSHOT $CMD_JAIL_SNAPSHOT_ADD jail "
+    echo "Take a snapshot of the jail"
+    echo "jail: Jail name"
+    echo "$c $CMD_JAIL $CMD_JAIL_SNAPSHOT $CMD_JAIL_SNAPSHOT_LIST jail "
+    echo "List jail snapshots'"
+    echo "jail: Jail name"
+    echo "$c $CMD_JAIL $CMD_JAIL_SNAPSHOT $CMD_JAIL_SNAPSHOT_REMOVE jail "
+    echo "Remove jail snapshot's"
+    echo "jail: Jail name"
+    echo "$c $CMD_JAIL $CMD_JAIL_SNAPSHOT $CMD_JAIL_SNAPSHOT_RESTORE jail snapshot"
+    echo "Restore jail to snapshot's"
+    echo "jail: Jail name"
+    echo "snapshot: Snapshot identifier"
     echo "$c $CMD_VM command"
     echo "About virtual machines"
     echo "$c $CMD_VM $CMD_VM_ISO"
@@ -146,6 +164,7 @@ _jail() {
     case $CMD in
         $CMD_JAIL_RELEASE) jail_release $*;;
         $CMD_JAIL_DATASET) jail_dataset $*;;
+        $CMD_JAIL_SNAPSHOT) jail_snapshot $*;;
         $CMD_JAIL_JAIL) jail_jail $*;;
         *) crt_invalid_command_line "jail command" $CMD ;;
     esac
@@ -167,6 +186,17 @@ jail_dataset() {
         $CMD_JAIL_DATASET_ADD) jail_dataset_add $*;;
         $CMD_JAIL_DATASET_REMOVE) jail_dataset_remove $*;;
         $CMD_JAIL_DATASET_LIST) jail_dataset_list $*;;
+        *) crt_invalid_command_line "jail command" $CMD ;;
+    esac
+}
+jail_snapshot() {
+    crt_not_enough_argument 1 $*
+    CMD=$1 ; shift
+    case $CMD in
+        $CMD_JAIL_SNAPSHOT_ADD) jail_snapshot_add $*;;
+        $CMD_JAIL_SNAPSHOT_REMOVE) jail_snapshot_remove $*;;
+        $CMD_JAIL_SNAPSHOT_LIST) jail_snapshot_list $*;;
+        $CMD_JAIL_SNAPSHOT_RESTORE) jail_snapshot_restore $*;;
         *) crt_invalid_command_line "jail command" $CMD ;;
     esac
 }

@@ -262,3 +262,63 @@ jail_jail_export() {
     dbg "Copy $final_src into $final_dest"
     cmd cp $final_src $final_dest
 }
+check_snapshot_exit() {
+    local dataset=$1
+    local snapshot=$1
+    if ! zfs_dataset_snapshot_exists $dataset $snapshot ; then
+        jail_crt $RETURN_COMMANDLINE_ERROR "$snapshot: no such snapshot for dataset $dataset"
+    fi
+}
+jail_snapshot_add() {
+    local jail_name=$1
+    local jail_dataset=$(hypervisor_jail_get_dataset_name $jail_name)
+    local default_snapname="$jail_dataset@$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    local snapname=$2
+    crt_not_enough_argument 1 $*
+    check_jail_exists_exit $jail_name
+    check_jail_config_exit $jail_name
+    check_jail_is_stopped_exit_or_stop $jail_name
+    dbg "Take dataset $jail_dataset snapshot of jail $jail_name"
+    cmd $ZFS_EXE snapshot $default_snapname
+    if [ "$snapname" != "" ] ; then
+        full_snapname="$jail_dataset@$snapname"
+        if zfs_dataset_snapshot_exists $jail_dataset $full_snapname ; then
+            dbg "Dataset $jail_dataset snapshot $full_snapname already exists, remove it"
+            cmd $ZFS_EXE destroy $full_snapname
+        fi
+        dbg "Rename $default_snapname into $full_snapname"
+        cmd $ZFS_EXE rename $default_snapname $snapname
+    fi
+    inf "New snapshot was created for jail $jail_name"
+}
+jail_snapshot_list() {
+    local jail_name=$1
+    local jail_dataset=$(hypervisor_jail_get_dataset_name $jail_name)
+    crt_not_enough_argument 1 $*
+    check_jail_exists_exit $jail_name
+    list_zfs_dataset_snapshots $jail_dataset
+}
+jail_snapshot_remove() {
+    local jail_name=$1
+    local snapname=$2
+    local jail_dataset=$(hypervisor_jail_get_dataset_name $jail_name)
+    crt_not_enough_argument 2 $*
+    check_jail_exists_exit $jail_name
+    check_snapshot_exit $jail_dataset $snapname
+    dbg "Remove dataset $jail_dataset snapshot $snapname"
+    cmd $ZFS_EXE destroy $snapname
+    inf "Snapshot $snapname from jail $jail_name was deleted"
+}
+jail_snapshot_restore() {
+    local jail_name=$1
+    local snapname=$2
+    local jail_dataset=$(hypervisor_jail_get_dataset_name $jail_name)
+    crt_not_enough_argument 2 $*
+    check_jail_exists_exit $jail_name
+    check_jail_config_exit $jail_name
+    check_jail_is_stopped_exit_or_stop $jail_name
+    check_snapshot_exit $jail_dataset $snapname
+    dbg "Restore dataset $jail_dataset into snapshot $snapname"
+    cmd $ZFS_EXE rollback $snapname
+    inf "Jail $jail_name was restored to snapsnot $snapname"
+}

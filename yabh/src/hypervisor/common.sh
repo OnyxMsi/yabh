@@ -7,9 +7,6 @@ hypervisor_get_dataset_iso_name() {
 hypervisor_get_dataset_release_name() {
     echo "$(hypervisor_get_dataset_root_name)/releases"
 }
-hypervisor_get_dataset_snapshot_name() {
-    echo "$(hypervisor_get_dataset_root_name)/snapshots"
-}
 hypervisor_get_dataset_jail_name() {
     echo "$(hypervisor_get_dataset_root_name)/jails"
 }
@@ -25,9 +22,6 @@ hypervisor_get_dataset_iso_mountpoint() {
 hypervisor_get_dataset_release_mountpoint() {
     echo "$(hypervisor_get_dataset_root_mountpoint)/releases"
 }
-hypervisor_get_dataset_snapshot_mountpoint() {
-    echo "$(hypervisor_get_dataset_root_mountpoint)/snapshots"
-}
 hypervisor_get_dataset_jail_mountpoint() {
     echo "$(hypervisor_get_dataset_root_mountpoint)/jails"
 }
@@ -41,7 +35,6 @@ check_hypervisor() {
     check_zfs_dataset_exists_exit $(hypervisor_get_dataset_root_name)
     check_zfs_dataset_exists_exit $(hypervisor_get_dataset_iso_name)
     check_zfs_dataset_exists_exit $(hypervisor_get_dataset_release_name)
-    check_zfs_dataset_exists_exit $(hypervisor_get_dataset_snapshot_name)
     check_zfs_dataset_exists_exit $(hypervisor_get_dataset_jail_name)
     check_zfs_dataset_exists_exit $(hypervisor_get_dataset_vm_name)
     # Jail
@@ -59,8 +52,6 @@ init_hypervisor() {
     cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_iso_name)
     create_zfs_dataset_if_not $(hypervisor_get_dataset_release_name)
     cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_release_name)
-    create_zfs_dataset_if_not $(hypervisor_get_dataset_snapshot_name)
-    cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_snapshot_name)
     create_zfs_dataset_if_not $(hypervisor_get_dataset_jail_name)
     create_zfs_dataset_if_not $(hypervisor_get_dataset_vm_name)
     cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_vm_name)

@@ -11,6 +11,9 @@ list_zfs_dataset_children() {
         basename $dname
     done
 }
+list_zfs_dataset_snapshots() {
+    $ZFS_EXE list -H -o name -t snapshot $1
+}
 check_kernel_module_loaded() {
     kldstat -q -n $1
     # Strange but these two differs
@@ -89,6 +92,11 @@ check_rc_value_exit() {
 zfs_dataset_exists() {
     local name=$1
     $ZFS_EXE list -H -o name | grep --quiet --extended-regexp "\b$name\b"
+}
+zfs_dataset_snapshot_exists() {
+    local dataset_name=$1
+    local snapshot_name=$2
+    $ZFS_EXE list -H -o name -t snapshot $dataset_name | grep --quiet --extended-regexp "\b$snapshot_name\b"
 }
 check_zfs_dataset_exists_exit() {
     local name=$1
