@@ -97,6 +97,7 @@ hypervisor_jail_create_skeleton() {
     mkdir -p $jail_root
     mkdir -p "$jail_root/dev"
     mkdir -p "$jail_root/tmp"
+    chmod 777 "$jail_root/tmp"
     mkdir -p "$jail_root/usr/local/bin"
     mkdir -p "$jail_root/usr/local/etc"
     mkdir -p "$jail_root/usr/local/include"
