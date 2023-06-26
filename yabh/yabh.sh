@@ -151,7 +151,7 @@ init() {
 }
 check_if() {
     if [ $NO_CHECK -eq 0 ] ; then
-        check $*
+        check "$@"
     else
         wrn "No check option is set"
     fi
@@ -159,60 +159,60 @@ check_if() {
 
 # jail is already defined
 _jail() {
-    crt_not_enough_argument 1 $*
+    crt_not_enough_argument 1 "$@"
     CMD=$1 ; shift
     case $CMD in
-        $CMD_JAIL_RELEASE) jail_release $*;;
-        $CMD_JAIL_DATASET) jail_dataset $*;;
-        $CMD_JAIL_SNAPSHOT) jail_snapshot $*;;
-        $CMD_JAIL_JAIL) jail_jail $*;;
+        $CMD_JAIL_RELEASE) jail_release "$@";;
+        $CMD_JAIL_DATASET) jail_dataset "$@";;
+        $CMD_JAIL_SNAPSHOT) jail_snapshot "$@";;
+        $CMD_JAIL_JAIL) jail_jail "$@";;
         *) crt_invalid_command_line "jail command" $CMD ;;
     esac
 }
 jail_release() {
-    crt_not_enough_argument 1 $*
+    crt_not_enough_argument 1 "$@"
     CMD=$1 ; shift
     case $CMD in
-        $CMD_JAIL_RELEASE_ADD) jail_release_add $*;;
-        $CMD_JAIL_RELEASE_REMOVE) jail_release_remove $*;;
-        $CMD_JAIL_RELEASE_LIST) jail_release_list $*;;
+        $CMD_JAIL_RELEASE_ADD) jail_release_add "$@";;
+        $CMD_JAIL_RELEASE_REMOVE) jail_release_remove "$@";;
+        $CMD_JAIL_RELEASE_LIST) jail_release_list "$@";;
         *) crt_invalid_command_line "jail command" $CMD ;;
     esac
 }
 jail_dataset() {
-    crt_not_enough_argument 1 $*
+    crt_not_enough_argument 1 "$@"
     CMD=$1 ; shift
     case $CMD in
-        $CMD_JAIL_DATASET_ADD) jail_dataset_add $*;;
-        $CMD_JAIL_DATASET_REMOVE) jail_dataset_remove $*;;
-        $CMD_JAIL_DATASET_LIST) jail_dataset_list $*;;
+        $CMD_JAIL_DATASET_ADD) jail_dataset_add "$@";;
+        $CMD_JAIL_DATASET_REMOVE) jail_dataset_remove "$@";;
+        $CMD_JAIL_DATASET_LIST) jail_dataset_list "$@";;
         *) crt_invalid_command_line "jail command" $CMD ;;
     esac
 }
 jail_snapshot() {
-    crt_not_enough_argument 1 $*
+    crt_not_enough_argument 1 "$@"
     CMD=$1 ; shift
     case $CMD in
-        $CMD_JAIL_SNAPSHOT_ADD) jail_snapshot_add $*;;
-        $CMD_JAIL_SNAPSHOT_REMOVE) jail_snapshot_remove $*;;
-        $CMD_JAIL_SNAPSHOT_LIST) jail_snapshot_list $*;;
-        $CMD_JAIL_SNAPSHOT_RESTORE) jail_snapshot_restore $*;;
+        $CMD_JAIL_SNAPSHOT_ADD) jail_snapshot_add "$@";;
+        $CMD_JAIL_SNAPSHOT_REMOVE) jail_snapshot_remove "$@";;
+        $CMD_JAIL_SNAPSHOT_LIST) jail_snapshot_list "$@";;
+        $CMD_JAIL_SNAPSHOT_RESTORE) jail_snapshot_restore "$@";;
         *) crt_invalid_command_line "jail command" $CMD ;;
     esac
 }
 jail_jail() {
-    crt_not_enough_argument 1 $*
+    crt_not_enough_argument 1 "$@"
     CMD=$1 ; shift
     case $CMD in
-        $CMD_JAIL_JAIL_ADD) jail_jail_add $*;;
-        $CMD_JAIL_JAIL_REMOVE) jail_jail_remove $*;;
-        $CMD_JAIL_JAIL_LIST) jail_jail_list $*;;
-        $CMD_JAIL_JAIL_GET) jail_jail_get $*;;
-        $CMD_JAIL_JAIL_SET) jail_jail_set $*;;
-        $CMD_JAIL_JAIL_START) jail_jail_start $*;;
-        $CMD_JAIL_JAIL_RESTART) jail_jail_restart $*;;
-        $CMD_JAIL_JAIL_STOP) jail_jail_stop $*;;
-        $CMD_JAIL_JAIL_EXPORT) jail_jail_export $*;;
+        $CMD_JAIL_JAIL_ADD) jail_jail_add "$@";;
+        $CMD_JAIL_JAIL_REMOVE) jail_jail_remove "$@";;
+        $CMD_JAIL_JAIL_LIST) jail_jail_list "$@";;
+        $CMD_JAIL_JAIL_GET) jail_jail_get "$@";;
+        $CMD_JAIL_JAIL_SET) jail_jail_set "$@";;
+        $CMD_JAIL_JAIL_START) jail_jail_start "$@";;
+        $CMD_JAIL_JAIL_RESTART) jail_jail_restart "$@";;
+        $CMD_JAIL_JAIL_STOP) jail_jail_stop "$@";;
+        $CMD_JAIL_JAIL_EXPORT) jail_jail_export "$@";;
         *) crt_invalid_command_line "jail command" $CMD ;;
     esac
 }
@@ -246,14 +246,14 @@ for dep in $(echo "$JQ_EXE $ZFS_EXE") ; do
         crt $RETURN_ENVIRONMENT_ERROR "$dep is required but not found"
     fi
 done
-crt_not_enough_argument 1 $*
+crt_not_enough_argument 1 "$@"
 configuration_load $CONFIGURATION_PATH
 CMD=$1 ; shift
 case $CMD in
     $CMD_CHECK) check ;;
     $CMD_INIT) init ;;
-    $CMD_JAIL) check_if ; _jail $* ;;
-    $CMD_VM) check_if ; vm $* ;;
+    $CMD_JAIL) check_if ; _jail "$@" ;;
+    $CMD_VM) check_if ; vm "$@" ;;
     *) crt_invalid_command_line command $CMD ;;
 esac
 dbg "Success"

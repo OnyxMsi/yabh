@@ -170,11 +170,11 @@ jail_jail_restart() {
     jail_jail_start $*
 }
 jail_jail_set() {
-    crt_not_enough_argument 2 $*
     local jail_name=$1
     local jail_config=$(hypervisor_jail_get_config_path $jail_name)
-    parameter_name=$2
-    parameter_value=$3
+    local parameter_name=$2
+    local parameter_value=$3
+    crt_not_enough_argument 2 $*
     check_jail_exists_exit $jail_name
     check_jail_config_exit $jail_name
     check_jail_is_stopped_exit_or_stop $jail_name
@@ -182,7 +182,7 @@ jail_jail_set() {
         hypervisor_jail_config_remove_parameter $jail_config $parameter_name
         inf "Jail $jail_name parameter $parameter_name was unset"
     else
-        hypervisor_jail_config_set_parameter $jail_config $parameter_name $parameter_value
+        hypervisor_jail_config_set_parameter $jail_config $parameter_name "$parameter_value"
         inf "Jail $jail_name parameter $parameter_name -> $parameter_value"
     fi
 }
@@ -193,7 +193,6 @@ jail_jail_get() {
     local parameter_name=$2
     check_jail_exists_exit $jail_name
     check_jail_config_exit $jail_name
-    check_jail_is_stopped_exit_or_stop $jail_name
     hypervisor_jail_config_get_parameter $jail_config $parameter_name
 }
 jail_dataset_add() {
