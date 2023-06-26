@@ -497,7 +497,7 @@ hypervisor_jail_remove() {
         return 1
     fi
     hv_dbg "[$name] Destroy dataset $jail_dataset"
-    cmd $ZFS_EXE destroy -R $jail_dataset
+    cmd $ZFS_EXE destroy -Rf $jail_dataset
     hv_inf "[$name] Jail was removed"
     return 0
 }
