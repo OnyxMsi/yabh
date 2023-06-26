@@ -167,7 +167,7 @@ hypervisor_jail_create_configuration_file() {
         "mount.devfs": true,
         "devfs_ruleset": "$JAIL_DEFAULT_DEVFSRULESET",
         "exec.start": "/bin/sh /etc/rc",
-        "exec.stop": "/bin/sh /etc/rc.shutdown"
+        "exec.stop": "/bin/sh /etc/rc.shutdown jail"
     }
 }
 EOF
@@ -318,7 +318,7 @@ hypervisor_jail_config_list_datasets() {
 }
 # Works only when jail is running
 hypervisor_jail_get_host_interface_name() {
-    echo "epair0a.$(jls_get_jid $1)"
+    echo "$1.a"
 }
 hypervisor_append_to_ucl_file() {
     local path=$1
@@ -431,14 +431,19 @@ hypervisor_jail_start() {
     hv_dbg "[$name] Create interface"
     jail_inet_a=$(ifconfig epair create)
     jail_inet_b="${jail_inet_a%a}b"
-    hv_dbg "[$name] Bound interface $jail_inet_a into bridge $bridge_name"
-    cmd ifconfig $bridge_name addm $jail_inet_a
-    cmd ifconfig $jail_inet_a up
+    jail_inet_a_new_name=$(hypervisor_jail_get_host_interface_name $name)
+    hv_dbg "[$name] Rename interface $jail_inet_a -> $jail_inet_a_new_name"
+    cmd ifconfig $jail_inet_a name $jail_inet_a_new_name
+    hv_dbg "[$name] Rename interface $jail_inet_b -> $jail_inet_b_new_name"
+    cmd ifconfig $jail_inet_b name $jail_inet_b_new_name
+    hv_dbg "[$name] Bound interface $jail_inet_a_new_name into bridge $bridge_name"
+    cmd ifconfig $bridge_name addm $jail_inet_a_new_name
+    cmd ifconfig $jail_inet_a_new_name up
     if ! hypervisor_jail_generate_fstab $name $release_name; then
         hv_err "[$jail_name] Can't generate jail configuration file"
         return 1
     fi
-    if ! hypervisor_jail_generate_configuration_file $name $jail_inet_b ; then
+    if ! hypervisor_jail_generate_configuration_file $name $jail_inet_b_new_name ; then
         hv_err "[$jail_name] Can't generate jail configuration file"
         return 1
     fi
@@ -450,13 +455,6 @@ hypervisor_jail_start() {
         cmd $ZFS_EXE set jailed=on $dpath
         cmd $ZFS_EXE jail $name $dpath
     done
-    # Last but not least rename interfaces to match jail JID (just like what iocage does)
-    jail_inet_a_new_name=$(hypervisor_jail_get_host_interface_name $name)
-    hv_dbg "[$name] Rename interface $jail_inet_a -> $jail_inet_a_new_name"
-    cmd ifconfig $jail_inet_a name $jail_inet_a_new_name
-    # The same but inside the jail
-    hv_dbg "[$name] (In jail) Rename interface $jail_inet_b -> $jail_inet_b_new_name"
-    cmd jexec $name ifconfig $jail_inet_b name $jail_inet_b_new_name
     hv_inf "[$name] Jail is running"
     return 0
 }
