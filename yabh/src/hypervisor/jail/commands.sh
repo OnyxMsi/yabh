@@ -157,7 +157,7 @@ jail_jail_stop() {
         check_jail_exists_exit $jail_name
         check_jail_config_exit $jail_name
         if ! jls_is_running $jail_name ; then
-            jail_crt "$jail_name is not running"
+            wrn "Jail $jail_name is not running"
         else
             hypervisor_jail_stop $jail_name
             inf "Jail $jail_name was stopped"
