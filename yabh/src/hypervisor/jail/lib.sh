@@ -41,6 +41,8 @@ hypervisor_release_fetch() {
     rm -rf $release_fetch
     hv_dbg "[$name] Make zfs dataset readonly"
     cmd $ZFS_EXE set readonly=on $release_dataset
+    hv_dbg "[$name] Make zfs dataset executable"
+    cmd $ZFS_EXE set exec=on $release_dataset
     hv_inf "[$name] Release $name fetched"
 }
 hypervisor_release_remove() {
@@ -93,6 +95,8 @@ hypervisor_jail_create_skeleton() {
     local release_root=$(hypervisor_release_get_root_path $release)
     hv_dbg "[$name] Create jail dataset $jail_dataset"
     cmd $ZFS_EXE create -p $jail_dataset
+    hv_dbg "[$name] Make dataset $jail_dataset executable"
+    cmd $ZFS_EXE set exec=on $jail_dataset
     hv_dbg "[$name] Create jail skeleton at $jail_root"
     mkdir -p $jail_root
     mkdir -p "$jail_root/dev"
