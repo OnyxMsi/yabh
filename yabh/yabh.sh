@@ -169,7 +169,7 @@ check_if() {
     if [ $NO_CHECK -eq 0 ] ; then
         check "$@"
     else
-        wrn "No check option is set"
+        dbg "No check option is set"
     fi
 }
 
