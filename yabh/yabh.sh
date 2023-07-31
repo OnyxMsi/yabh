@@ -20,6 +20,10 @@ CMD_JAIL_DATASET=dataset
 CMD_JAIL_DATASET_ADD=add
 CMD_JAIL_DATASET_REMOVE=remove
 CMD_JAIL_DATASET_LIST=list
+CMD_JAIL_INTERFACE=interface
+CMD_JAIL_INTERFACE_ADD=add
+CMD_JAIL_INTERFACE_REMOVE=remove
+CMD_JAIL_INTERFACE_LIST=list
 CMD_JAIL_JAIL=jail
 CMD_JAIL_JAIL_ADD=add
 CMD_JAIL_JAIL_REMOVE=remove
@@ -115,7 +119,19 @@ help() {
     echo "Restore jail to snapshot's"
     echo "jail: Jail name"
     echo "snapshot: Snapshot identifier"
-    echo "$c $CMD_VM command"
+    echo "$c $CMD_JAIL $CMD_JAIL_INTERFACE $CMD_JAIL_INTERFACE_ADD jail system_bridge [interface_name]"
+    echo "Add a new interface in jail configuration"
+    echo "jail: Jail name"
+    echo "system_bridge: Bridge to bound on (must exists)"
+    echo "interface_name: Optional, a default will be generated"
+    echo "$c $CMD_JAIL $CMD_JAIL_INTERFACE $CMD_JAIL_INTERFACE_REMOVE jail interface_name"
+    echo "Remove an interface from jail configuration"
+    echo "jail: Jail name"
+    echo "interface_name: Interface name"
+    echo "$c $CMD_JAIL $CMD_JAIL_INTERFACE $CMD_JAIL_INTERFACE_LIST jail"
+    echo "List jail's interfaces"
+    echo "jail: Jail name"
+    echo ""
     echo "About virtual machines"
     echo "$c $CMD_VM $CMD_VM_ISO"
     echo "About virtual machines ISO's"
@@ -166,6 +182,7 @@ _jail() {
         $CMD_JAIL_DATASET) jail_dataset "$@";;
         $CMD_JAIL_SNAPSHOT) jail_snapshot "$@";;
         $CMD_JAIL_JAIL) jail_jail "$@";;
+        $CMD_JAIL_INTERFACE) jail_interface "$@";;
         *) crt_invalid_command_line "jail command" $CMD ;;
     esac
 }
@@ -213,6 +230,16 @@ jail_jail() {
         $CMD_JAIL_JAIL_RESTART) jail_jail_restart "$@";;
         $CMD_JAIL_JAIL_STOP) jail_jail_stop "$@";;
         $CMD_JAIL_JAIL_EXPORT) jail_jail_export "$@";;
+        *) crt_invalid_command_line "jail command" $CMD ;;
+    esac
+}
+jail_interface() {
+    crt_not_enough_argument 1 "$@"
+    CMD=$1 ; shift
+    case $CMD in
+        $CMD_JAIL_INTERFACE_ADD) jail_interface_add "$@";;
+        $CMD_JAIL_INTERFACE_REMOVE) jail_interface_remove "$@";;
+        $CMD_JAIL_JAIL_LIST) jail_interface_list "$@";;
         *) crt_invalid_command_line "jail command" $CMD ;;
     esac
 }

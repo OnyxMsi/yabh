@@ -71,15 +71,29 @@ hypervisor_jail_get_root_path() {
 hypervisor_jail_get_config_path() {
     echo "$(hypervisor_jail_get_dataset_mountpoint $1)/config.json"
 }
+hypervisor_jail_get_environment_file_path() {
+    echo "$(hypervisor_jail_get_dataset_mountpoint $1)/exec_environment"
+}
 hypervisor_jail_get_ucl_config_path() {
     echo "$(hypervisor_jail_get_dataset_mountpoint $1)/jail.conf"
 }
 hypervisor_jail_get_fstab_path() {
     echo "$(hypervisor_jail_get_dataset_mountpoint $1)/fstab"
 }
-hypervisor_jail_get_vnet_if_name() {
-    local name=$1
-    echo "epair_$name"
+hypervisor_jail_get_exec_prepare_file_path() {
+    echo "$(hypervisor_jail_get_dataset_mountpoint $1)/exec_prepare.sh"
+}
+hypervisor_jail_get_exec_poststop_file_path() {
+    echo "$(hypervisor_jail_get_dataset_mountpoint $1)/exec_poststop.sh"
+}
+hypervisor_jail_get_exec_created_file_path() {
+    echo "$(hypervisor_jail_get_dataset_mountpoint $1)/exec_created.sh"
+}
+hypervisor_jail_get_exec_common_file_path() {
+    echo "$(hypervisor_jail_get_dataset_mountpoint $1)/exec_common.sh"
+}
+hypervisor_jail_config_get_release() {
+    jq_get $1 .yabh_parameters.release
 }
 hypervisor_jail_exists() {
     zfs_dataset_exists $(hypervisor_jail_get_dataset_name $1)
@@ -159,6 +173,8 @@ hypervisor_jail_create_configuration_file() {
 {
     "datasets": [
     ],
+    "interfaces": {
+    },
     "yabh_parameters": {
         "priority": 0,
         "release": "$release"
@@ -200,6 +216,22 @@ hypervisor_jail_create() {
         hv_err "[$name] Can't create jail configuration file"
         return 1
     fi
+    if ! hypervisor_jail_create_environment_file $name ; then
+        hv_err "[$name] Can't create jail environment file"
+        return 1
+    fi
+    if ! hypervisor_jail_create_ucl_configuration_file $name ; then
+        hv_err "[$name] Can't create jail UCL configuration file"
+        return 1
+    fi
+    if ! hypervisor_jail_install_exec_files $name ; then
+        hv_err "[$name] Can't create jail environment file"
+        return 1
+    fi
+    if ! hypervisor_jail_create_fstab $name $release; then
+        hv_err "[$jail_name] Can't generate jail fstab file"
+        return 1
+    fi
     hv_inf "[$name] Jail was created"
     return 0
 }
@@ -238,10 +270,11 @@ hypervisor_jail_check_configuration() {
         hv_err "[$jail_name] No datasets in configuration"
         return 1
     fi
+    if ! jq_has_key "$conf_path" . interfaces ; then
+        hv_err "[$jail_name] No interfaces in configuration"
+        return 1
+    fi
     hv_dbg "[$jail_name] Configuration file is OK"
-}
-hypervisor_jail_config_get_release() {
-    jq_get $1 .yabh_parameters.release
 }
 hypervisor_jail_config_is_yabh_parameter() {
     local conf_path=$1
@@ -320,9 +353,34 @@ hypervisor_jail_config_list_datasets() {
     local conf_path=$1
     jq_get $1 ".datasets | .[]"
 }
-# Works only when jail is running
-hypervisor_jail_get_host_interface_name() {
-    echo "$1.a"
+hypervisor_jail_config_has_interfaces() {
+    local conf_path=$1
+    test $(jq_get $conf_path ". | has(\"interfaces\")") = true
+}
+hypervisor_jail_config_has_interface() {
+    local conf_path=$1
+    local if_name=$2
+    test $(jq_get $conf_path ".interfaces | has(\"$if_name\")") = true
+}
+hypervisor_jail_config_interface_get_bridge_name() {
+    local conf_path=$1
+    local if_name=$2
+    jq_get $conf_path ".interfaces.$if_name.bridge"
+}
+hypervisor_jail_config_interface_set_bridge_name() {
+    local conf_path=$1
+    local if_name=$2
+    local bridge=$3
+    jq_edit $conf_path ".interfaces.$if_name.bridge=\"$bridge\""
+}
+hypervisor_jail_config_list_interfaces() {
+    local conf_path=$1
+    jq_get $conf_path ".interfaces | keys | .[]"
+}
+hypervisor_jail_config_remove_interface() {
+    local conf_path=$1
+    local if_name=$2
+    jq_edit $conf_path "del(.interfaces.$if_name)"
 }
 hypervisor_append_to_ucl_file() {
     local path=$1
@@ -336,12 +394,13 @@ hypervisor_append_to_ucl_file() {
     fi
     echo "    $s" >> $path
 }
-hypervisor_jail_generate_fstab() {
+hypervisor_jail_create_fstab() {
     local name=$1
     local jail_config=$(hypervisor_jail_get_config_path $name)
     local jail_release=$(hypervisor_jail_config_get_release $jail_config)
     local jail_fstab=$(hypervisor_jail_get_fstab_path $name)
     local release_root=$(hypervisor_release_get_root_path $jail_release)
+    local jail_root=$(hypervisor_jail_get_root_path $name)
     if [ -f $jail_fstab ] ; then
         hv_wrn "[$name] fstab file $jail_fstab exists, that means jail was not stopped properly"
     fi
@@ -363,20 +422,23 @@ $release_root/usr/libdata $jail_root/usr/libdata nullfs ro 0 0
 $release_root/usr/lib32 $jail_root/usr/lib32 nullfs ro 0 0
 EOF
 }
-hypervisor_jail_generate_configuration_file() {
+hypervisor_jail_create_ucl_configuration_file() {
     local name=$1
-    local jail_inet_b=$2
     local jail_config=$(hypervisor_jail_get_config_path $name)
     local jail_fstab=$(hypervisor_jail_get_fstab_path $name)
     local conf=$(cat $jail_config)
     local jail_ucl_conf_path=$(hypervisor_jail_get_ucl_config_path $name)
-    if [ -f $jail_ucl_conf_path ] ; then
-        hv_wrn "[$name] UCL configuration file $jail_ucl_conf_path exists, that means jail was not stopped properly"
-    fi
+    local vnet_interfaces=$(str_join ", " $(hypervisor_jail_config_list_interfaces $jail_config))
+    local prepare_path=$(hypervisor_jail_get_exec_prepare_file_path $name)
+    local poststop_path=$(hypervisor_jail_get_exec_poststop_file_path $name)
+    local created_path=$(hypervisor_jail_get_exec_created_file_path $name)
     hv_dbg "[$name] Generate jail configuration file $jail_ucl_conf_path"
     echo "$name {" > $jail_ucl_conf_path
     hypervisor_append_to_ucl_file $jail_ucl_conf_path mount.fstab $jail_fstab
-    hypervisor_append_to_ucl_file $jail_ucl_conf_path vnet.interface "${jail_inet_b}"
+    #hypervisor_append_to_ucl_file $jail_ucl_conf_path vnet.interface "$vnet_interfaces"
+    hypervisor_append_to_ucl_file $jail_ucl_conf_path exec.prepare "sh $prepare_path"
+    hypervisor_append_to_ucl_file $jail_ucl_conf_path exec.poststop "sh $poststop_path"
+    hypervisor_append_to_ucl_file $jail_ucl_conf_path exec.created "sh $created_path"
     for p_name in $(hypervisor_jail_config_list_jail_parameters $jail_config) ; do
         p_value=$(hypervisor_jail_config_get_parameter $jail_config $p_name)
         hv_dbg "[$name] Set $p_name = $p_value"
@@ -390,16 +452,37 @@ hypervisor_jail_generate_configuration_file() {
     done
     echo "}" >> $jail_ucl_conf_path
 }
+hypervisor_jail_create_environment_file() {
+    local name=$1
+    local env_file=$(hypervisor_jail_get_environment_file_path $name)
+    hv_dbg "[$name] Generate jail environment file $env_file"
+    cat > $env_file << EOF
+YABH_JAIL_NAME=$name
+YABH_EXE=$SCRIPTDIR/$SCRIPTNAME
+YABH_CONFIGURATION_PATH=$CONFIGURATION_PATH
+EOF
+}
+hypervisor_jail_install_exec_files() {
+    local name=$1
+    local prepare_path=$(hypervisor_jail_get_exec_prepare_file_path $name)
+    local poststop_path=$(hypervisor_jail_get_exec_poststop_file_path $name)
+    local common_path=$(hypervisor_jail_get_exec_common_file_path $name)
+    local created_path=$(hypervisor_jail_get_exec_created_file_path $name)
+    hv_dbg "[$name] Install exec.prepare file at $prepare_path"
+    cmd cp $HYPERVISOR_JAIL_TEMPLATE_EXEC_PREPARE $prepare_path
+    hv_dbg "[$name] Install exec.poststop file at $poststop_path"
+    cmd cp $HYPERVISOR_JAIL_TEMPLATE_EXEC_POSTSTOP $poststop_path
+    hv_dbg "[$name] Install exec.created file at $created_path"
+    cmd cp $HYPERVISOR_JAIL_TEMPLATE_EXEC_CREATED $created_path
+    hv_dbg "[$name] Install exec.* common code file at $common_path"
+    cmd cp $HYPERVISOR_JAIL_TEMPLATE_EXEC_COMMON $common_path
+    return 0
+}
 hypervisor_jail_start() {
     local name=$1
     local jail_config=$(hypervisor_jail_get_config_path $name)
     local jail_root=$(hypervisor_jail_get_root_path $name)
-    local bridge_name=$(configuration_get_bridge_interface)
     local jail_ucl_conf_path=$(hypervisor_jail_get_ucl_config_path $name)
-    local jail_inet_a_new_name
-    local jail_inet_b_new_name="epair0b"
-    local jail_inet_a
-    local jail_inet_b
     hv_dbg "[$name] Generate jail data before start"
     if jls_is_running $name ; then
         hv_err "There is already a jail $name running"
@@ -430,35 +513,17 @@ hypervisor_jail_start() {
         fi
         if ! hypervisor_jail_config_has_parameter $jail_config enforce_statfs || [ "$(hypervisor_jail_config_get_parameter $jail_config enforce_statfs)" -ge 2 ] ; then
             hv_err "[$name] Parameter enforce_statfs must be set lower than 2 in order to use ZFS datasets"
+            return 1
         fi
     fi
-    hv_dbg "[$name] Create interface"
-    jail_inet_a=$(ifconfig epair create)
-    jail_inet_b="${jail_inet_a%a}b"
-    jail_inet_a_new_name=$(hypervisor_jail_get_host_interface_name $name)
-    hv_dbg "[$name] Rename interface $jail_inet_a -> $jail_inet_a_new_name"
-    cmd ifconfig $jail_inet_a name $jail_inet_a_new_name
-    hv_dbg "[$name] Rename interface $jail_inet_b -> $jail_inet_b_new_name"
-    cmd ifconfig $jail_inet_b name $jail_inet_b_new_name
-    hv_dbg "[$name] Bound interface $jail_inet_a_new_name into bridge $bridge_name"
-    cmd ifconfig $bridge_name addm $jail_inet_a_new_name
-    cmd ifconfig $jail_inet_a_new_name up
-    if ! hypervisor_jail_generate_fstab $name $release_name; then
-        hv_err "[$jail_name] Can't generate jail configuration file"
-        return 1
-    fi
-    if ! hypervisor_jail_generate_configuration_file $name $jail_inet_b_new_name ; then
-        hv_err "[$jail_name] Can't generate jail configuration file"
+    if ! hypervisor_jail_config_has_interfaces $jail_config ; then
+        hv_err "[$name] No interfaces were defined"
         return 1
     fi
     hv_inf "[$name] Start jail"
+    # Export verbosity level
+    export YABH_VERBOSITY_LEVEL=$VERBOSITY_LEVEL
     cmd jail -f $jail_ucl_conf_path -c $name
-    hv_dbg "[$name] Mount datasets"
-    for dpath in $(hypervisor_jail_config_list_datasets $jail_config) ; do
-        hv_dbg "[$name] Attach dataset $dpath to jail"
-        cmd $ZFS_EXE set jailed=on $dpath
-        cmd $ZFS_EXE jail $name $dpath
-    done
     hv_inf "[$name] Jail is running"
     return 0
 }
@@ -466,7 +531,6 @@ hypervisor_jail_stop() {
     local name=$1
     local jail_ucl_conf_path=$(hypervisor_jail_get_ucl_config_path $name)
     local jail_fstab=$(hypervisor_jail_get_fstab_path $name)
-    local jail_host_if=$(hypervisor_jail_get_host_interface_name $name)
     hv_dbg "[$name] Stop jail"
     if ! jls_is_running $name ; then
         hv_err "[$name] No such jail running"
@@ -476,14 +540,9 @@ hypervisor_jail_stop() {
         hv_err "[$name] No UCL configuration file for jail. This should not happen"
         return 1
     fi
+    # Export verbosity level
+    export YABH_VERBOSITY_LEVEL=$VERBOSITY_LEVEL
     cmd jail -f $jail_ucl_conf_path -r $name
-    hv_dbg "[$name] Jail is down"
-    hv_dbg "[$name] Remove UCL configuration file $jail_ucl_conf_path"
-    rm $jail_ucl_conf_path
-    hv_dbg "[$name] Remove fstab file $jail_fstab"
-    rm $jail_fstab
-    hv_dbg "[$name] Destroy host interface $jail_host_if"
-    cmd ifconfig $jail_host_if destroy
     hv_inf "[$name] Jail was stopped"
     return 0
 }
@@ -504,4 +563,62 @@ hypervisor_jail_remove() {
     cmd $ZFS_EXE destroy -Rf $jail_dataset
     hv_inf "[$name] Jail was removed"
     return 0
+}
+hypervisor_jail_interface_get_next_name() {
+    local name=$1
+    local jail_config=$(hypervisor_jail_get_config_path $name)
+    idx=0
+    while : ; do
+        interface_name="epair${idx}b"
+        if ! hypervisor_jail_config_has_interface $jail_config $interface_name && ! inet_if_exists $interface_name ; then
+            echo $interface_name
+            return
+        fi
+        idx=$(($idx + 1))
+    done
+}
+hypervisor_jail_interface_add() {
+    local name=$1
+    local bridge_name=$2
+    local interface_name=$3
+    local jail_config=$(hypervisor_jail_get_config_path $name)
+    hv_dbg "[$name] Add new interface on bridge $bridge_name"
+    if [ ! -f $jail_config ] ; then
+        hv_err "[$name] $jail_config: no such configuration file"
+        return 1
+    fi
+    if hypervisor_jail_config_has_interface $jail_config $interface_name ; then
+        hv_err "[$name] Jail has already an interface $interface_name"
+        return 1
+    fi
+    if jls_is_running $name ; then
+        hv_err "[$name] Jail is still running"
+        return 1
+    fi
+    if ! inet_if_exists $bridge_name ; then
+        hv_err "[$name] bridge $bridge_name does not exists"
+        return 1
+    fi
+    hypervisor_jail_config_interface_set_bridge_name $jail_config $interface_name $bridge_name
+    hv_inf "[$name] Interface $interface_name added"
+    return 0
+}
+hypervisor_jail_interface_remove() {
+    local name=$1
+    local interface_name=$2
+    local jail_config=$(hypervisor_jail_get_config_path $name)
+    hv_dbg "[$name] Remove interface $interface_name"
+    if [ ! -f $jail_config ] ; then
+        hv_err "[$name] $jail_config: no such configuration file"
+        return 1
+    fi
+    if jls_is_running $name ; then
+        hv_err "[$name] Jail is still running"
+        return 1
+    fi
+    if ! hypervisor_jail_config_has_interface $jail_config $interface_name ; then
+        hv_err "[$name] $interface_name: no such interface"
+        return 1
+    fi
+    hypervisor_jail_config_remove_interface $jail_config $interface_name
 }

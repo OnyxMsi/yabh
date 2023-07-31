@@ -18,3 +18,11 @@ DEFAULT_CONFIGURATION_PATH="/usr/local/etc/$PROGNAME/configuration.json"
 
 JQ_EXE=${YABH_JQ_EXE:-/usr/local/bin/jq}
 ZFS_EXE=${YABH_ZFS_EXE:-/sbin/zfs}
+
+RUNTIME_DIRECTORY=$SCRIPTDIR
+
+# Exec templates for jails
+HYPERVISOR_JAIL_TEMPLATE_EXEC_PREPARE=$SCRIPTDIR/src/hypervisor/jail/exec_templates/prepare.sh
+HYPERVISOR_JAIL_TEMPLATE_EXEC_CREATED=$SCRIPTDIR/src/hypervisor/jail/exec_templates/created.sh
+HYPERVISOR_JAIL_TEMPLATE_EXEC_POSTSTOP=$SCRIPTDIR/src/hypervisor/jail/exec_templates/poststop.sh
+HYPERVISOR_JAIL_TEMPLATE_EXEC_COMMON=$SCRIPTDIR/src/hypervisor/jail/exec_templates/common.sh

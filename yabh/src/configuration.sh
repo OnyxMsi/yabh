@@ -56,19 +56,11 @@ check_configuration_has_key_non_empty_exit() {
 
 check_configuration() {
     dbg "Check configuration file $CONFIGURATION_PATH"
-    check_configuration_has_key_non_empty_exit $CONFIGURATION_PATH . main_interface
-    check_configuration_has_key_non_empty_exit $CONFIGURATION_PATH . bridge_interface
     check_configuration_has_key_non_empty_exit $CONFIGURATION_PATH . dataset
     check_configuration_has_key_non_empty_exit $CONFIGURATION_PATH .dataset name
     check_configuration_has_key_non_empty_exit $CONFIGURATION_PATH .dataset mountpoint
 }
 
-configuration_get_main_interface() {
-    jq_get $CONFIGURATION_PATH .main_interface
-}
-configuration_get_bridge_interface() {
-    jq_get $CONFIGURATION_PATH .bridge_interface
-}
 configuration_get_dataset_name() {
     jq_get $CONFIGURATION_PATH .dataset.name
 }

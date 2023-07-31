@@ -131,8 +131,16 @@ check_system() {
     if [ ! -d $(configuration_get_dataset_mountpoint) ] ; then
         crt $RETURN_ENVIRONMENT_ERROR "$(configuration_get_dataset_mountpoint): no such directory"
     fi
-    check_interface_exists_exit $(configuration_get_main_interface)
-    check_interface_exists_exit $(configuration_get_bridge_interface)
     check_sysctl_value_exit net.inet.ip.forwarding 1
     dbg "System configuration is ready"
+}
+str_join() {
+    local sep=$1 ; shift
+    local res
+    local el
+    while [ $# -gt 0 ] ; do
+        el=$1 ; shift
+        [ "$res" = "" ] && res=$el || res="$res$sep$el"
+    done
+    echo $res
 }

@@ -185,6 +185,9 @@ jail_jail_set() {
         hypervisor_jail_config_set_parameter $jail_config $parameter_name "$parameter_value"
         inf "Jail $jail_name parameter $parameter_name -> $parameter_value"
     fi
+    if ! hypervisor_jail_create_ucl_configuration_file $jail_config ; then
+        jail_crt "Can't create UCL configuration file for $jail_config"
+    fi
 }
 jail_jail_get() {
     crt_not_enough_argument 2 $*
@@ -211,6 +214,9 @@ jail_dataset_add() {
     elif ! hypervisor_jail_config_add_dataset $jail_config $dataset ; then
         jail_crt "Can't add dataset $dataset to jail $jail_name"
     fi
+    if ! hypervisor_jail_create_ucl_configuration_file $jail_config ; then
+        jail_crt "Can't create UCL configuration file for $jail_config"
+    fi
     inf "Dataset $dataset was added to jail $jail_name"
 }
 jail_dataset_list() {
@@ -218,7 +224,7 @@ jail_dataset_list() {
     local jail_config=$(hypervisor_jail_get_config_path $jail_name)
     check_jail_exists_exit $jail_name
     check_jail_config_exit $jail_name
-    hypervisor_jail_config_list_datasets $1
+    hypervisor_jail_config_list_datasets $jail_config
 }
 jail_dataset_remove() {
     local jail_name=$1
@@ -237,6 +243,9 @@ jail_dataset_remove() {
         fi
     else
         crt $RETURN_COMMANDLINE_ERROR "Dataset $dataset is not set for jail $jail_name"
+    fi
+    if ! hypervisor_jail_create_ucl_configuration_file $jail_config ; then
+        jail_crt "Can't create UCL configuration file for $jail_config"
     fi
 }
 jail_jail_export() {
@@ -320,4 +329,49 @@ jail_snapshot_restore() {
     dbg "Restore dataset $jail_dataset into snapshot $snapname"
     cmd $ZFS_EXE rollback $snapname
     inf "Jail $jail_name was restored to snapsnot $snapname"
+}
+jail_interface_add() {
+    local jail_name=$1
+    local bridge_name=$2
+    local interface_name=$3
+    crt_not_enough_argument 2 $*
+    check_jail_exists_exit $jail_name
+    check_jail_config_exit $jail_name
+    check_jail_is_stopped_exit_or_stop $jail_name
+    if [ "$interface_name" = "" ] ; then
+        dbg "Generate interface name for $jail_name"
+        interface_name=$(hypervisor_jail_interface_get_next_name $jail_name)
+    fi
+    if ! hypervisor_jail_interface_add $jail_name $bridge_name $interface_name ; then
+        jail_crt "Can't add interface $Interface_name to $jail_name"
+    fi
+    if ! hypervisor_jail_create_ucl_configuration_file $jail_name ; then
+        jail_crt "Can't create UCL configuration file for $jail_name"
+    fi
+    inf "Interface $interface_name was added to $jail_name"
+}
+jail_interface_remove() {
+    local jail_name=$1
+    local interface_name=$2
+    crt_not_enough_argument 2 $*
+    check_jail_exists_exit $jail_name
+    check_jail_config_exit $jail_name
+    check_jail_is_stopped_exit_or_stop $jail_name
+    if ! hypervisor_jail_interface_remove $jail_name $interface_name ; then
+        jail_crt "Can't remove interface $interface_name from $jail_name"
+    fi
+    if ! hypervisor_jail_create_ucl_configuration_file $jail_name ; then
+        jail_crt "Can't create UCL configuration file for $jail_name"
+    fi
+    inf "Interface $interface_name was removed from $jail_name"
+}
+jail_interface_list() {
+    local jail_name=$1
+    local bridge_name
+    local jail_config=$(hypervisor_jail_get_config_path $jail_name)
+    crt_not_enough_argument 1 $*
+    check_jail_exists_exit $jail_name
+    for if_name in $(hypervisor_jail_config_list_interfaces $jail_config) ; do
+        echo "$if_name,$(hypervisor_jail_config_interface_get_bridge_name $jail_config $if_name)"
+    done
 }
