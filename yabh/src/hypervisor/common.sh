@@ -48,7 +48,7 @@ init_hypervisor() {
     dbg "Initialize hypervisor configuration"
     # Dataset
     create_zfs_dataset_if_not $(hypervisor_get_dataset_root_name)
-    cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_jail_name)
+    cmd $ZFS_EXE set exec=off $(hypervisor_get_dataset_root_name)
     create_zfs_dataset_if_not $(hypervisor_get_dataset_iso_name)
     create_zfs_dataset_if_not $(hypervisor_get_dataset_release_name)
     create_zfs_dataset_if_not $(hypervisor_get_dataset_jail_name)
