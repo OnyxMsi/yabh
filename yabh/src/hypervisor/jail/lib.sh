@@ -458,7 +458,7 @@ hypervisor_jail_create_environment_file() {
     hv_dbg "[$name] Generate jail environment file $env_file"
     cat > $env_file << EOF
 YABH_JAIL_NAME=$name
-YABH_EXE=$SCRIPTDIR/$SCRIPTNAME
+YABH_DIR=$SCRIPTDIR
 YABH_CONFIGURATION_PATH=$CONFIGURATION_PATH
 EOF
 }

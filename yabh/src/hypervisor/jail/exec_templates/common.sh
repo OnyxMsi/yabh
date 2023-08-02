@@ -55,7 +55,7 @@ inet_if_exists() {
     ifconfig $name > /dev/null 2>&1
 }
 yabh_run() {
-    sh $YABH_EXE -c $YABH_CONFIGURATION_PATH $@
+    sh $YABH_DIR/yabh.sh -c $YABH_CONFIGURATION_PATH $@
 }
 
 load_environment() {
@@ -66,8 +66,8 @@ load_environment() {
 
     . $ENVIRONMENT_FILE
 
-    if [ ! -f $YABH_EXE ] ; then
-        crt 1 "$YABH_EXE: Can't find yabh runtime"
+    if [ ! -d $YABH_DIR ] ; then
+        crt 1 "$YABH_DIR: Can't find yabh runtime"
     fi
 
     if [ "$YABH_JAIL_NAME" = "" ] ; then
