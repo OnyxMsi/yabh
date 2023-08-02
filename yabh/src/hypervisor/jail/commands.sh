@@ -185,8 +185,8 @@ jail_jail_set() {
         hypervisor_jail_config_set_parameter $jail_config $parameter_name "$parameter_value"
         inf "Jail $jail_name parameter $parameter_name -> $parameter_value"
     fi
-    if ! hypervisor_jail_create_ucl_configuration_file $jail_config ; then
-        jail_crt "Can't create UCL configuration file for $jail_config"
+    if ! hypervisor_jail_create_ucl_configuration_file $jail_name ; then
+        jail_crt "Can't create UCL configuration file for $jail_name"
     fi
 }
 jail_jail_get() {
@@ -214,8 +214,8 @@ jail_dataset_add() {
     elif ! hypervisor_jail_config_add_dataset $jail_config $dataset ; then
         jail_crt "Can't add dataset $dataset to jail $jail_name"
     fi
-    if ! hypervisor_jail_create_ucl_configuration_file $jail_config ; then
-        jail_crt "Can't create UCL configuration file for $jail_config"
+    if ! hypervisor_jail_create_ucl_configuration_file $jail_name ; then
+        jail_crt "Can't create UCL configuration file for $jail_name"
     fi
     inf "Dataset $dataset was added to jail $jail_name"
 }
@@ -244,8 +244,8 @@ jail_dataset_remove() {
     else
         crt $RETURN_COMMANDLINE_ERROR "Dataset $dataset is not set for jail $jail_name"
     fi
-    if ! hypervisor_jail_create_ucl_configuration_file $jail_config ; then
-        jail_crt "Can't create UCL configuration file for $jail_config"
+    if ! hypervisor_jail_create_ucl_configuration_file $jail_name ; then
+        jail_crt "Can't create UCL configuration file for $jail_name"
     fi
 }
 jail_jail_export() {
