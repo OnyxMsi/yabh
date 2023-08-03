@@ -38,7 +38,7 @@ for if_str in $(yabh_run jail interface list $YABH_JAIL_NAME) ; do
     if_tmp_a_name=$(ifconfig epair create)
     if_tmp_b_name="${if_tmp_a_name%a}b"
     dbg "[$YABH_JAIL_NAME] Rename system interface $if_tmp_a_name -> $if_system_name"
-    cmd ifconfig $if_tmp_a_name name $if_system_name
+    cmd ifconfig $if_tmp_a_name name $if_system_name up
     dbg "[$YABH_JAIL_NAME] Rename jail interface $if_tmp_b_name -> $if_name"
     cmd ifconfig $if_tmp_b_name name $if_name
     dbg "[$YABH_JAIL_NAME] Set interface $if_system_name part of bridge $if_bridge"
