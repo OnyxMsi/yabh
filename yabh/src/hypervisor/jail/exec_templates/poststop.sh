@@ -17,5 +17,5 @@ for if_str in $(yabh_run jail interface list $YABH_JAIL_NAME) ; do
         crt 1 "$if_name: no such interface"
     fi
     dbg "[$YABH_JAIL_NAME] Destroy interface $if_name"
-    cmd ifconfig $if_name destroy
+    ifconfig $if_name destroy || true
 done
