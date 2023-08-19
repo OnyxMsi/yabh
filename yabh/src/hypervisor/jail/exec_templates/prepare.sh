@@ -44,11 +44,4 @@ for if_str in $(yabh_run jail interface list $YABH_JAIL_NAME) ; do
     dbg "[$YABH_JAIL_NAME] Set interface $if_system_name part of bridge $if_bridge"
     cmd ifconfig $if_bridge addm $if_system_name up
 done
-# Mount datasets
-for d_str in $(yabh_run jail dataset list $YABH_JAIL_NAME) ; do
-    dpath=$(csvline_get_field 1 "$d_str")
-    dbg "[$YABH_JAIL_NAME] Attach dataset $dpath to jail"
-    cmd zfs set jailed=on $dpath
-    cmd zfs jail $YABH_JAIL_NAME $dpath
-done
 dbg Success

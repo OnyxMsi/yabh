@@ -77,3 +77,7 @@ load_environment() {
         crt 1 "YABH_CONFIGURATION_PATH is not defined"
     fi
 }
+zfs_dataset_exists() {
+    local name=$1
+    zfs list -H -o name | grep --quiet --extended-regexp "\b$name\b"
+}

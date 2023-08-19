@@ -19,4 +19,14 @@ for if_str in $(yabh_run jail interface list $YABH_JAIL_NAME) ; do
     dbg "[$YABH_JAIL_NAME] Attach interface $if_name"
     cmd ifconfig $if_name vnet $YABH_JAIL_NAME
 done
+# Mount datasets
+for d_str in $(yabh_run jail dataset list $YABH_JAIL_NAME) ; do
+    dpath=$(csvline_get_field 1 "$d_str")
+    if ! zfs_dataset_exists $dpath ; then
+        crt 1 "$dpath: no such dataset"
+    fi
+    dbg "[$YABH_JAIL_NAME] Attach dataset $dpath to jail"
+    cmd zfs set jailed=on $dpath
+    cmd zfs jail $YABH_JAIL_NAME $dpath
+done
 dbg Success
