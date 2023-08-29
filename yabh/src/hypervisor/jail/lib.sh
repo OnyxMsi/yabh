@@ -503,11 +503,11 @@ hypervisor_jail_start() {
     # This just helpful
     if hypervisor_jail_config_has_datasets $jail_config ; then
         hv_dbg "[$name] ZFS datasets are expected, check configuration"
-        if ! hypervisor_jail_config_has_parameter_with_value $jail_config allow.mount true ; then
+        if ! hypervisor_jail_config_has_parameter_with_value $jail_config allow.mount 1 ; then
             hv_err "[$name] Parameter allow.mount must be set to true in order to use ZFS datasets"
             return 1
         fi
-        if ! hypervisor_jail_config_has_parameter_with_value $jail_config allow.mount.zfs true ; then
+        if ! hypervisor_jail_config_has_parameter_with_value $jail_config allow.mount.zfs 1 ; then
             hv_err "[$name] Parameter allow.mount.zfs must be set to true in order to use ZFS datasets"
             return 1
         fi
