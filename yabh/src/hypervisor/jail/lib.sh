@@ -83,8 +83,8 @@ hypervisor_jail_get_fstab_path() {
 hypervisor_jail_get_exec_prepare_file_path() {
     echo "$(hypervisor_jail_get_dataset_mountpoint $1)/exec_prepare.sh"
 }
-hypervisor_jail_get_exec_poststop_file_path() {
-    echo "$(hypervisor_jail_get_dataset_mountpoint $1)/exec_poststop.sh"
+hypervisor_jail_get_exec_release_file_path() {
+    echo "$(hypervisor_jail_get_dataset_mountpoint $1)/exec_release.sh"
 }
 hypervisor_jail_get_exec_created_file_path() {
     echo "$(hypervisor_jail_get_dataset_mountpoint $1)/exec_created.sh"
@@ -430,14 +430,14 @@ hypervisor_jail_create_ucl_configuration_file() {
     local jail_ucl_conf_path=$(hypervisor_jail_get_ucl_config_path $name)
     local vnet_interfaces=$(str_join ", " $(hypervisor_jail_config_list_interfaces $jail_config))
     local prepare_path=$(hypervisor_jail_get_exec_prepare_file_path $name)
-    local poststop_path=$(hypervisor_jail_get_exec_poststop_file_path $name)
+    local release_path=$(hypervisor_jail_get_exec_release_file_path $name)
     local created_path=$(hypervisor_jail_get_exec_created_file_path $name)
     hv_dbg "[$name] Generate jail configuration file $jail_ucl_conf_path"
     echo "$name {" > $jail_ucl_conf_path
     hypervisor_append_to_ucl_file $jail_ucl_conf_path mount.fstab $jail_fstab
     #hypervisor_append_to_ucl_file $jail_ucl_conf_path vnet.interface "$vnet_interfaces"
     hypervisor_append_to_ucl_file $jail_ucl_conf_path exec.prepare "sh $prepare_path"
-    hypervisor_append_to_ucl_file $jail_ucl_conf_path exec.poststop "sh $poststop_path"
+    hypervisor_append_to_ucl_file $jail_ucl_conf_path exec.release "sh $release_path"
     hypervisor_append_to_ucl_file $jail_ucl_conf_path exec.created "sh $created_path"
     for p_name in $(hypervisor_jail_config_list_jail_parameters $jail_config) ; do
         p_value=$(hypervisor_jail_config_get_parameter $jail_config $p_name)
@@ -465,13 +465,13 @@ EOF
 hypervisor_jail_install_exec_files() {
     local name=$1
     local prepare_path=$(hypervisor_jail_get_exec_prepare_file_path $name)
-    local poststop_path=$(hypervisor_jail_get_exec_poststop_file_path $name)
+    local release_path=$(hypervisor_jail_get_exec_release_file_path $name)
     local common_path=$(hypervisor_jail_get_exec_common_file_path $name)
     local created_path=$(hypervisor_jail_get_exec_created_file_path $name)
     hv_dbg "[$name] Install exec.prepare file at $prepare_path"
     cmd cp $HYPERVISOR_JAIL_TEMPLATE_EXEC_PREPARE $prepare_path
-    hv_dbg "[$name] Install exec.poststop file at $poststop_path"
-    cmd cp $HYPERVISOR_JAIL_TEMPLATE_EXEC_POSTSTOP $poststop_path
+    hv_dbg "[$name] Install exec.release file at $release_path"
+    cmd cp $HYPERVISOR_JAIL_TEMPLATE_EXEC_RELEASE $release_path
     hv_dbg "[$name] Install exec.created file at $created_path"
     cmd cp $HYPERVISOR_JAIL_TEMPLATE_EXEC_CREATED $created_path
     hv_dbg "[$name] Install exec.* common code file at $common_path"

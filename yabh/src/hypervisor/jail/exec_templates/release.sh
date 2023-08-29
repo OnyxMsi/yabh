@@ -9,7 +9,7 @@ fi
 . $COMMON_PATH
 load_environment
 
-dbg "[$YABH_JAIL_NAME] Execute post stop script"
+dbg "[$YABH_JAIL_NAME] Execute release script"
 # Delete interfaces
 for if_str in $(yabh_run jail interface list $YABH_JAIL_NAME) ; do
     if_name=$(csvline_get_field 1 "$if_str")
