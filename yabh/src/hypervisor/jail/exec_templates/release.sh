@@ -11,8 +11,12 @@ load_environment
 
 dbg "[$YABH_JAIL_NAME] Execute release script"
 # Delete interfaces
-for if_str in $(yabh_run jail interface list $YABH_JAIL_NAME) ; do
-    if_name=$(csvline_get_field 1 "$if_str")
+idx=0
+while : ; do
+    if_name="${YABH_JAIL_NAME}.${idx}a"
+    if ! inet_if_exists $if_name ; then
+        break
+    fi
     dbg "[$YABH_JAIL_NAME] Destroy interface $if_name"
     ifconfig $if_name destroy || true
 done
