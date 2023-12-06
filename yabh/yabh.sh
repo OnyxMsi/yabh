@@ -24,16 +24,15 @@ CMD_JAIL_INTERFACE=interface
 CMD_JAIL_INTERFACE_ADD=add
 CMD_JAIL_INTERFACE_REMOVE=remove
 CMD_JAIL_INTERFACE_LIST=list
-CMD_JAIL_JAIL=jail
-CMD_JAIL_JAIL_ADD=add
-CMD_JAIL_JAIL_REMOVE=remove
-CMD_JAIL_JAIL_LIST=list
-CMD_JAIL_JAIL_GET=get
-CMD_JAIL_JAIL_SET=set
-CMD_JAIL_JAIL_START=start
-CMD_JAIL_JAIL_RESTART=restart
-CMD_JAIL_JAIL_STOP=stop
-CMD_JAIL_JAIL_EXPORT=export
+CMD_JAIL_ADD=add
+CMD_JAIL_REMOVE=remove
+CMD_JAIL_LIST=list
+CMD_JAIL_GET=get
+CMD_JAIL_SET=set
+CMD_JAIL_START=start
+CMD_JAIL_RESTART=restart
+CMD_JAIL_STOP=stop
+CMD_JAIL_EXPORT=export
 CMD_JAIL_SNAPSHOT=snapshot
 CMD_JAIL_SNAPSHOT_ADD=add
 CMD_JAIL_SNAPSHOT_REMOVE=remove
@@ -74,34 +73,32 @@ help() {
     echo "Add new dataset to jail"
     echo "$c $CMD_JAIL $CMD_JAIL_DATASET $CMD_JAIL_DATASET_REMOVE jail_name dataset_name"
     echo "Remove dataset from jail"
-    echo "$c $CMD_JAIL $CMD_JAIL_JAIL command"
-    echo "About jails"
-    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_ADD name release"
+    echo "$c $CMD_JAIL $CMD_JAIL_ADD name release"
     echo "Add new jail"
     echo "name: the name of the jail"
     echo "release: the release to use"
-    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_REMOVE name"
+    echo "$c $CMD_JAIL $CMD_JAIL_REMOVE name"
     echo "Remove jail"
-    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_START [name ...]"
+    echo "$c $CMD_JAIL $CMD_JAIL_START [name ...]"
     echo "Start jail"
-    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_RESTART [name ...]"
+    echo "$c $CMD_JAIL $CMD_JAIL_RESTART [name ...]"
     echo "Restart jail"
     echo "name: the name of the jail (if not set then start every jail)"
-    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_STOP [name ...]"
+    echo "$c $CMD_JAIL $CMD_JAIL_STOP [name ...]"
     echo "Stop jail"
     echo "name: the name of the jail"
-    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_SET name parameter [value]"
+    echo "$c $CMD_JAIL $CMD_JAIL_SET name parameter [value]"
     echo "Set jail parameter"
     echo "name: the name of the jail"
     echo "parameter: the name of the parameter to set"
     echo "value: the value of the parameter to set, if empty it will unset it"
-    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_GET name parameter"
+    echo "$c $CMD_JAIL $CMD_JAIL_GET name parameter"
     echo "Get jail parameter"
-    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_LIST [-s separator][fields ...]"
+    echo "$c $CMD_JAIL $CMD_JAIL_LIST [-s separator][fields ...]"
     echo "List jails"
     echo "-s Fields separator (default is \"$DEFAULT_LIST_SEPARATOR\")"
     echo "fields ... Fields to show (default is \"$DEFAULT_JAIL_LIST_FIELDS\"). Fields come from jail parameters"
-    echo "$c $CMD_JAIL $CMD_JAIL_JAIL $CMD_JAIL_JAIL_EXPORT jail src [dest]"
+    echo "$c $CMD_JAIL $CMD_JAIL_EXPORT jail src [dest]"
     echo "Export file into jail"
     echo "jail: Jail name"
     echo "src: File path on host"
@@ -181,8 +178,16 @@ _jail() {
         $CMD_JAIL_RELEASE) jail_release "$@";;
         $CMD_JAIL_DATASET) jail_dataset "$@";;
         $CMD_JAIL_SNAPSHOT) jail_snapshot "$@";;
-        $CMD_JAIL_JAIL) jail_jail "$@";;
         $CMD_JAIL_INTERFACE) jail_interface "$@";;
+        $CMD_JAIL_ADD) jail_add "$@";;
+        $CMD_JAIL_REMOVE) jail_remove "$@";;
+        $CMD_JAIL_LIST) jail_list "$@";;
+        $CMD_JAIL_GET) jail_get "$@";;
+        $CMD_JAIL_SET) jail_set "$@";;
+        $CMD_JAIL_START) jail_start "$@";;
+        $CMD_JAIL_RESTART) jail_restart "$@";;
+        $CMD_JAIL_STOP) jail_stop "$@";;
+        $CMD_JAIL_EXPORT) jail_export "$@";;
         *) crt_invalid_command_line "jail command" $CMD ;;
     esac
 }
@@ -217,29 +222,13 @@ jail_snapshot() {
         *) crt_invalid_command_line "jail command" $CMD ;;
     esac
 }
-jail_jail() {
-    crt_not_enough_argument 1 "$@"
-    CMD=$1 ; shift
-    case $CMD in
-        $CMD_JAIL_JAIL_ADD) jail_jail_add "$@";;
-        $CMD_JAIL_JAIL_REMOVE) jail_jail_remove "$@";;
-        $CMD_JAIL_JAIL_LIST) jail_jail_list "$@";;
-        $CMD_JAIL_JAIL_GET) jail_jail_get "$@";;
-        $CMD_JAIL_JAIL_SET) jail_jail_set "$@";;
-        $CMD_JAIL_JAIL_START) jail_jail_start "$@";;
-        $CMD_JAIL_JAIL_RESTART) jail_jail_restart "$@";;
-        $CMD_JAIL_JAIL_STOP) jail_jail_stop "$@";;
-        $CMD_JAIL_JAIL_EXPORT) jail_jail_export "$@";;
-        *) crt_invalid_command_line "jail command" $CMD ;;
-    esac
-}
 jail_interface() {
     crt_not_enough_argument 1 "$@"
     CMD=$1 ; shift
     case $CMD in
         $CMD_JAIL_INTERFACE_ADD) jail_interface_add "$@";;
         $CMD_JAIL_INTERFACE_REMOVE) jail_interface_remove "$@";;
-        $CMD_JAIL_JAIL_LIST) jail_interface_list "$@";;
+        $CMD_JAIL_INTERFACE_LIST) jail_interface_list "$@";;
         *) crt_invalid_command_line "jail command" $CMD ;;
     esac
 }

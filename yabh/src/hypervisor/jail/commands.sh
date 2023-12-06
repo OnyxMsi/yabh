@@ -52,7 +52,7 @@ jail_release_remove() {
         if [ "$jail_release" = "$release_name" ] && jls_is_running $jail_name ; then
             if force_is_set ; then
                 wrn "Jail $jail_name is using release $release_name, stop it"
-                jail_jail_stop $jail_name
+                jail_stop $jail_name
             else
                 jail_crt "Release $release_name is used by $jail_name which is still running"
             fi
@@ -63,7 +63,7 @@ jail_release_remove() {
     fi
     inf "Release $release_name was deleted"
 }
-jail_jail_add() {
+jail_add() {
     local jail_name=$1
     local release_name=$2
     crt_not_enough_argument 2 $*
@@ -71,7 +71,7 @@ jail_jail_add() {
     if hypervisor_jail_exists $jail_name ; then
         if force_is_set ; then
             wrn "Jail $jail_name already exists, remove it"
-            jail_jail_remove $jail_name
+            jail_remove $jail_name
         else
             jail_crt "Jail $jail_name already exists"
         fi
@@ -81,7 +81,7 @@ jail_jail_add() {
     fi
     inf "Jail $jail_name was created"
 }
-jail_jail_list() {
+jail_list() {
     local fields=${1:-$DEFAULT_JAIL_LIST_FIELDS}
     local jail_name
     local jail_conf
@@ -103,13 +103,13 @@ check_jail_is_stopped_exit_or_stop() {
     if jls_is_running $name ; then
         if force_is_set ; then
             wrn "Jail $name is running, stop it"
-            jail_jail_stop $name
+            jail_stop $name
         else
             jail_crt "Jail $name is running"
         fi
     fi
 }
-jail_jail_remove() {
+jail_remove() {
     crt_not_enough_argument 1 $*
     local jail_name=$1
     check_jail_exists_exit $jail_name
@@ -118,7 +118,7 @@ jail_jail_remove() {
     hypervisor_jail_remove $jail_name
     inf "Jail $jail_name was removed"
 }
-jail_jail_list_with_priority() {
+jail_list_with_priority() {
     local jail
     local jail_config
     local priority
@@ -131,14 +131,14 @@ jail_jail_list_with_priority() {
         echo "$priority $jail"
     done
 }
-jail_jail_list_sort_by_priority() {
-    jail_jail_list_with_priority $* | sort -g | cut -f 2 -d " "
+jail_list_sort_by_priority() {
+    jail_list_with_priority $* | sort -g | cut -f 2 -d " "
 }
-jail_jail_list_sort_by_priority_reversed() {
-    jail_jail_list_with_priority $* | sort -rg | cut -f 2 -d " "
+jail_list_sort_by_priority_reversed() {
+    jail_list_with_priority $* | sort -rg | cut -f 2 -d " "
 }
-jail_jail_start() {
-    for jail_name in $(jail_jail_list_sort_by_priority $*) ; do
+jail_start() {
+    for jail_name in $(jail_list_sort_by_priority $*) ; do
         check_jail_exists_exit $jail_name
         check_jail_config_exit $jail_name
         check_jail_is_stopped_exit_or_stop $jail_name
@@ -152,8 +152,8 @@ jail_jail_start() {
         fi
     done
 }
-jail_jail_stop() {
-    for jail_name in $(jail_jail_list_sort_by_priority_reversed $*) ; do
+jail_stop() {
+    for jail_name in $(jail_list_sort_by_priority_reversed $*) ; do
         check_jail_exists_exit $jail_name
         check_jail_config_exit $jail_name
         if ! jls_is_running $jail_name ; then
@@ -164,12 +164,12 @@ jail_jail_stop() {
         fi
     done
 }
-jail_jail_restart() {
+jail_restart() {
     crt_not_enough_argument 1 $*
-    jail_jail_stop $*
-    jail_jail_start $*
+    jail_stop $*
+    jail_start $*
 }
-jail_jail_set() {
+jail_set() {
     local jail_name=$1
     local jail_config=$(hypervisor_jail_get_config_path $jail_name)
     local parameter_name=$2
@@ -189,7 +189,7 @@ jail_jail_set() {
         jail_crt "Can't create UCL configuration file for $jail_name"
     fi
 }
-jail_jail_get() {
+jail_get() {
     crt_not_enough_argument 2 $*
     local jail_name=$1
     local jail_config=$(hypervisor_jail_get_config_path $jail_name)
@@ -248,7 +248,7 @@ jail_dataset_remove() {
         jail_crt "Can't create UCL configuration file for $jail_name"
     fi
 }
-jail_jail_export() {
+jail_export() {
     local jail_name=$1
     local src=$2
     local dest=$3

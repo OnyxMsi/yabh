@@ -35,13 +35,16 @@ yabh_start() {
             err 1 "yabh check has failed"
         fi
         debug "Start jails"
-        run_yabh jail jail start
+        run_yabh jail start
+        if [ $? -ne 0 ] ; then
+            err 1 "yabh jail start has failed"
+        fi
     fi
 }
 yabh_stop() {
     if checkyesno ${rcvar} ; then
         debug "Stop jails"
-        run_yabh jail jail stop
+        run_yabh jail stop
     fi
 }
 
