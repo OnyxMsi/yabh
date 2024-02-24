@@ -15,11 +15,15 @@ list_zfs_dataset_snapshots() {
     $ZFS_EXE list -H -o name -t snapshot $1
 }
 check_kernel_module_loaded() {
+    local ret
     kldstat -q -n $1
+    ret=$?
     # Strange but these two differs
-    if [ $? -ne 0 ] ; then
+    if [ $ret -ne 0 ] ; then
         kldstat -q -m $1
+        ret=$?
     fi
+    return $ret
 }
 check_kernel_module_loaded_exit() {
     local name=$1
