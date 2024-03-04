@@ -10,6 +10,15 @@ hypervisor_release_get_root_path() {
 hypervisor_release_exists() {
     zfs_dataset_exists $(hypervisor_release_get_dataset_name $1)
 }
+hypervisor_get_host_release_name() {
+    local version=$(uname -U)
+    local version_major=$(($version / 100000))
+    local version_minor=$(($version / 1000 % 100))
+    echo "$version_major.$version_minor-RELEASE"
+}
+hypervisor_release_is_host_release() {
+    test "$1" = $(hypervisor_get_host_release_name)
+}
 hypervisor_release_fetch() {
     local name=$1
     local release_url="$HYPERVISOR_RELEASE_BASE_URL/$name"
@@ -44,6 +53,44 @@ hypervisor_release_fetch() {
     hv_dbg "[$name] Make zfs dataset executable"
     cmd $ZFS_EXE set exec=on $release_dataset
     hv_inf "[$name] Release $name fetched"
+}
+# Helper function
+remove_and_link() {
+    local oldpath=$1
+    local target=$2
+    hv_dbg "Replace $oldpath by a symbolic link to $target"
+    cmd chflags -R noschg $oldpath
+    cmd rm -rf $oldpath
+    cmd ln -s $target $oldpath
+}
+hypervisor_release_fetch_host_release() {
+    local name=$(hypervisor_get_host_release_name)
+    local release_dataset=$(hypervisor_release_get_dataset_name $name)
+    local release_root=$(hypervisor_release_get_root_path $name)
+    hv_dbg "Fetch host release"
+    if ! hypervisor_release_fetch $name ; then
+        hv_err "Can't fetch host release"
+        return 1
+    fi
+    # Keep only what is to be copied on a new jail using this release
+    # Replace the rest with symbolic links
+    cmd $ZFS_EXE set readonly=off $release_dataset
+    remove_and_link $release_root/bin /bin
+    remove_and_link $release_root/boot /boot
+    remove_and_link $release_root/lib /lib
+    remove_and_link $release_root/libexec /libexec
+    remove_and_link $release_root/rescue /rescue
+    remove_and_link $release_root/sbin /sbin
+    remove_and_link $release_root/usr/bin /usr/bin
+    remove_and_link $release_root/usr/include /usr/include
+    remove_and_link $release_root/usr/lib /usr/lib
+    remove_and_link $release_root/usr/libexec /usr/libexec
+    remove_and_link $release_root/usr/sbin /usr/sbin
+    remove_and_link $release_root/usr/share /usr/share
+    remove_and_link $release_root/usr/libdata /usr/libdata
+    remove_and_link $release_root/usr/lib32 /usr/lib32
+    cmd $ZFS_EXE set readonly=on $release_dataset
+    hv_inf "Host release ($name) fetched"
 }
 hypervisor_release_remove() {
     local name=$1

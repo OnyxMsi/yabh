@@ -33,8 +33,15 @@ jail_release_add() {
             jail_crt "Release $release_name already exists"
         fi
     fi
-    if ! hypervisor_release_fetch $release_name ; then
-        jail_crt "Can't fetch $release_name"
+    # If this is the current host release, fetch it properly
+    if hypervisor_release_is_host_release $release_name ; then
+        if ! hypervisor_release_fetch_host_release ; then
+            jail_crt "Can't fetch $release_name"
+        fi
+    else
+        if ! hypervisor_release_fetch $release_name ; then
+            jail_crt "Can't fetch $release_name"
+        fi
     fi
     inf "Release $release_name was added"
 }
