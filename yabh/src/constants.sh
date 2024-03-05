@@ -9,7 +9,7 @@ RETURN_NOT_ROOT_ERROR=3
 RETURN_ENVIRONMENT_ERROR=4
 RETURN_JAIL_ERROR=5
 
-HYPERVISOR_RELEASE_BASE_URL="https://download.freebsd.org/ftp/releases/amd64"
+HYPERVISOR_RELEASE_BASE_URL="https://download.freebsd.org/ftp/releases/$(uname -m)"
 JAIL_DEFAULT_DEVFSRULESET=5
 
 DEFAULT_LIST_SEPARATOR=","
