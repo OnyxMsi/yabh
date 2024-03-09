@@ -19,6 +19,10 @@ hypervisor_get_host_release_name() {
 hypervisor_release_is_host_release() {
     test "$1" = $(hypervisor_get_host_release_name)
 }
+hypervisor_release_has_lib32() {
+    local release_root=$(hypervisor_release_get_root_path $1)
+    test -d "$release_root/usr/lib32"
+}
 hypervisor_release_fetch() {
     local name=$1
     local release_url="$HYPERVISOR_RELEASE_BASE_URL/$name"
@@ -88,7 +92,9 @@ hypervisor_release_fetch_host_release() {
     remove_and_link $release_root/usr/sbin /usr/sbin
     remove_and_link $release_root/usr/share /usr/share
     remove_and_link $release_root/usr/libdata /usr/libdata
-    remove_and_link $release_root/usr/lib32 /usr/lib32
+    if hypervisor_release_has_lib32 $name ; then
+        remove_and_link $release_root/usr/lib32 /usr/lib32
+    fi
     cmd $ZFS_EXE set readonly=on $release_dataset
     hv_inf "Host release ($name) fetched"
 }
@@ -188,7 +194,9 @@ hypervisor_jail_create_skeleton() {
     mkdir -p $jail_root/usr/sbin
     mkdir -p $jail_root/usr/share
     mkdir -p $jail_root/usr/libdata
-    mkdir -p $jail_root/usr/lib32
+    if hypervisor_release_has_lib32 $release ; then
+        mkdir -p $jail_root/usr/lib32
+    fi
 }
 hypervisor_jail_create_rc_conf() {
     local name=$1
@@ -466,8 +474,12 @@ $release_root/usr/libexec $jail_root/usr/libexec nullfs ro 0 0
 $release_root/usr/sbin $jail_root/usr/sbin nullfs ro 0 0
 $release_root/usr/share $jail_root/usr/share nullfs ro 0 0
 $release_root/usr/libdata $jail_root/usr/libdata nullfs ro 0 0
+EOF
+    if hypervisor_release_has_lib32 $jail_release ; then
+        cat >> $jail_fstab << EOF
 $release_root/usr/lib32 $jail_root/usr/lib32 nullfs ro 0 0
 EOF
+    fi
 }
 hypervisor_jail_create_ucl_configuration_file() {
     local name=$1
